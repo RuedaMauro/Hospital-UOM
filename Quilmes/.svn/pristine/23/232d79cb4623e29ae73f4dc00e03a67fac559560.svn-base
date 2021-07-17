@@ -1,0 +1,154 @@
+USE [Hospital]
+GO
+
+/****** Object:  Table [dbo].[Fact_Parte_Cab]    Script Date: 03/25/2013 15:47:04 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[Fact_Parte_Cab](
+	[NroParte] [bigint] IDENTITY(1,1) NOT NULL,
+	[Fecha] [datetime] NOT NULL,
+	[NHC] [bigint] NOT NULL,
+	[InstitucionId] [int] NOT NULL,
+	[CentroId] [int] NOT NULL,
+ CONSTRAINT [PK_Fact_Parte_Cab] PRIMARY KEY CLUSTERED 
+(
+	[NroParte] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+
+
+-----------------------------------------------------------------------------
+USE [Hospital]
+GO
+
+/****** Object:  Table [dbo].[Fact_Parte_Det]    Script Date: 03/26/2013 13:16:38 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[Fact_Parte_Det](
+	[NroParte] [bigint] NOT NULL,
+	[Ambulatorio] [bit] NULL,
+	[Internacion] [bit] NULL,
+	[Modulo] [bit] NULL,
+	[Practica] [bit] NULL,
+	[FechaPractica] [date] NULL,
+	[FechaRendicion] [date] NULL,
+	[ServicioId] [int] NULL,
+	[EspecialidadId] [int] NULL,
+	[MedicoId] [int] NULL,
+	[Cantidad] [int] NULL,
+	[Porcentaje] [decimal](10, 2) NULL,
+	[PracticaId] [int] NULL,
+	[Precio] [smallmoney] NULL,
+	[Facturarlo] [bit] NULL,
+	[Honorarios] [bit] NULL,
+	[APE] [bit] NULL
+) ON [PRIMARY]
+
+GO
+
+
+---------------------------------------------------------------------------------------
+CREATE PROCEDURE H2_FACTURACION_PARTE_INSERT_CAB	
+	@NroParte bigint,
+	@Fecha datetime,
+	@NHC bigint,
+	@InstitucionId int,
+	@CentroId int
+AS
+IF NOT EXISTS (SELECT 1 FROM Fact_Parte_Cab WHERE Fact_Parte_Cab.NroParte = @NroParte)
+BEGIN
+	INSERT INTO Fact_Parte_Cab (Fecha,NHC,InstitucionId,CentroId)
+	VALUES (GETDATE(),@NHC,@InstitucionId,@CentroId)
+	SELECT @@IDENTITY AS NroParte
+END
+ELSE
+BEGIN
+	SELECT @NroParte AS NroParte
+END
+-------------------------------------------------------------------------------------
+CREATE PROCEDURE H2_FACTURACION_PARTE_INSERT_DET
+	@NroParte bigint,
+	@Ambulatorio bit,
+	@Internacion bit,
+	@Modulo bit,
+	@Practica bit,
+	@FechaPractica date,
+	@FechaRendicion date,
+	@ServicioId int,
+	@EspecialidadId int,
+	@MedicoId int,
+	@Cantidad int,
+	@Porcentaje decimal,
+	@PracticaId int,
+	@Precio smallmoney,
+	@Facturarlo bit,
+	@Honorarios bit,
+	@APE bit
+	AS
+INSERT INTO Fact_Parte_Det (NroParte,Ambulatorio,Internacion,Modulo,Practica,FechaPractica,FechaRendicion,ServicioId,EspecialidadId,MedicoId,Cantidad,
+Porcentaje,PracticaId,Precio,Facturarlo,Honorarios,APE)
+VALUES (@NroParte,@Ambulatorio,@Internacion,@Modulo,@Practica,@FechaPractica,@FechaRendicion,@ServicioId,@EspecialidadId,@MedicoId,@Cantidad,@Porcentaje,
+@PracticaId,@Precio,@Facturarlo,@Honorarios,@APE)
+SELECT @NroParte as NroParte
+-----------------------------------------------------------------------------------
+CREATE PROCEDURE H2_FACTURACION_PARTE_DELETE_DET
+	@NroParte bigint
+	AS
+DELETE FROM Fact_Parte_Det
+WHERE Fact_Parte_Det.NroParte = @NroParte
+---------------------------------------------------------------------------------
+ALTER PROCEDURE H2_FACTURACION_LIST_PARTES
+@NHC bigint,
+@InstitucionId int,
+@Afiliado varchar(50),
+@SeccionalId int,
+@NroParte bigint,
+@DesdeParte date,
+@HastaParte date
+--@DesdePrac date,
+--@HastaPrac date,
+--@DesdeRendicion date,
+--@HastaRendicion date
+--@EspecialidadId int,
+--@MedicoId int
+AS
+
+if (@DesdeParte = '01/01/0001') set @DesdeParte = null
+if (@HastaParte = '01/01/0001') set @HastaParte = null
+If (@Afiliado = '') set @Afiliado = null
+
+SELECT     Fact_Parte_Cab.NroParte, Fact_Parte_Cab.Fecha, Fact_Parte_Cab.NHC, Padron.dbo.Gente.apellido AS Paciente, Seccionales.Seccional
+FROM         Fact_Parte_Cab INNER JOIN
+                      Padron.dbo.Gente ON Fact_Parte_Cab.NHC = Padron.dbo.Gente.cuil LEFT OUTER JOIN
+                      Seccionales ON Padron.dbo.Gente.Seccional = Seccionales.cabecera
+WHERE (Gente.apellido like '%'+@Afiliado+'%' or @Afiliado is null) AND (@SeccionalId = Gente.Seccional or @SeccionalId = 0)
+AND (NroParte = @NroParte or @NroParte = 0) AND (@InstitucionId = InstitucionId or @InstitucionId = 0)  AND
+(@NHC = NHC OR @NHC = 0) AND ((CONVERT(DATE, Fecha) BETWEEN @DesdeParte AND @HastaParte) OR (@DesdeParte is null) OR (@HastaParte is null))
+------------------------------------------------------------------------------------
+CREATE PROCEDURE H2_FACTURACION_LISTPARTES_BY_NROPARTE
+@NroParte int
+as
+select * from Fact_Parte_Cab
+where NroParte = @NroParte
+------------------------------------------------------------------------------------
+CREATE PROCEDURE H2_FACTURACION_LISTPARTES_BY_NROPARTE_DET
+@NroParte int
+as
+SELECT     Fact_Parte_Det.NroParte, Fact_Parte_Det.Ambulatorio, Fact_Parte_Det.Internacion, Fact_Parte_Det.Modulo, Fact_Parte_Det.Practica, Fact_Parte_Det.FechaPractica, 
+                      Fact_Parte_Det.FechaRendicion, Fact_Parte_Det.ServicioId, Fact_Parte_Det.EspecialidadId, Fact_Parte_Det.MedicoId, Fact_Parte_Det.Cantidad, 
+                      Fact_Parte_Det.Porcentaje, Fact_Parte_Det.Precio, Fact_Parte_Det.Facturarlo, Fact_Parte_Det.Honorarios, Fact_Parte_Det.APE, Fact_Parte_Det.PracticaId, 
+                      Practica.Descripcion as PracticaDesc
+FROM         Fact_Parte_Det LEFT OUTER JOIN
+                      Practica ON Fact_Parte_Det.PracticaId = Practica.Id
+where NroParte = @NroParte

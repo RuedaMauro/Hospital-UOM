@@ -1,0 +1,406 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for InternacionesBLL
+/// </summary>
+namespace Hospital
+{
+    public class InternacionesBLL
+    {
+        public InternacionesBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        public List<hosppor> Hospitalizado_Por_Lista()
+        {
+            InternacionDALTableAdapters.H2_HospPor_ListTableAdapter adapter = new InternacionDALTableAdapters.H2_HospPor_ListTableAdapter();
+            InternacionDAL.H2_HospPor_ListDataTable aTable = adapter.GetData(null, 1);
+
+            List<hosppor> Lista = new List<hosppor>();
+
+            foreach (InternacionDAL.H2_HospPor_ListRow row in aTable.Rows)
+            {
+                hosppor h = new hosppor();
+                h.id = row.Id;
+                h.descripcion = row.Descripcion;                
+                Lista.Add(h);
+            }
+            return Lista;
+        }
+
+
+        public List<motivoIngreso> Motivo_Ingreso()
+        {
+            InternacionDALTableAdapters.H2_MotivoIngreso_ListTableAdapter adapter = new InternacionDALTableAdapters.H2_MotivoIngreso_ListTableAdapter();
+            InternacionDAL.H2_MotivoIngreso_ListDataTable aTable = adapter.GetData(null, 1);
+
+            List<motivoIngreso> Lista = new List<motivoIngreso>();
+
+            foreach (InternacionDAL.H2_MotivoIngreso_ListRow row in aTable.Rows)
+            {
+                motivoIngreso m = new motivoIngreso();
+                m.id = row.Id;
+                m.motivo = row.Descripcion;
+                Lista.Add(m);
+            }
+            return Lista;
+        }
+
+
+        public List<motivoEgreso> Motivo_Egreso()
+        {
+            InternacionDALTableAdapters.H2_MotivoDeEgreso_ListTableAdapter adapter = new InternacionDALTableAdapters.H2_MotivoDeEgreso_ListTableAdapter();
+            InternacionDAL.H2_MotivoDeEgreso_ListDataTable aTable = adapter.GetData(null);
+
+            List<motivoEgreso> Lista = new List<motivoEgreso>();
+
+            foreach (InternacionDAL.H2_MotivoDeEgreso_ListRow row in aTable.Rows)
+            {
+                motivoEgreso m = new motivoEgreso();
+                m.id = row.Id;
+                m.motivo = row.Descripcion;
+                Lista.Add(m);
+            }
+            return Lista;
+        }
+
+        public long Ingreso_Guardar(int? Id, long NHC, DateTime Fecha, int Servicio, int Sala, int Cama, string Telefono, string Diagnostico, int Hospitalizadopor, int Motivo, string Observacion, int Especialidad, int Medico, int Usuario   )
+        {
+            InternacionDALTableAdapters.QueriesTableAdapter adapter = new InternacionDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_Internacion_Guardar(Id, NHC, Fecha, Servicio, Sala, Cama, Telefono, Diagnostico, Hospitalizadopor, Motivo, Observacion, Especialidad, Medico, 1, Usuario);
+            return Convert.ToInt64(R);
+        }
+
+        public void Insert_Datos_Acompa(Acompa_Internacion a)
+        {
+            InternacionDALTableAdapters.QueriesTableAdapter adapter = new InternacionDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_INTERNACION_ACOMPA_INSERT(a.NroInternacion, a.Nombre, a.TipoDoc, a.DNI, a.Parentezco, a.Calle, a.Numero, a.Piso, a.CP, a.Localidad, a.Provincia, a.Telefono, a.Observaciones);
+        }
+
+        public int_ingreso Ingreso_Id(int id)
+        {
+            InternacionDALTableAdapters.H2_Internacion_IdTableAdapter adapter = new InternacionDALTableAdapters.H2_Internacion_IdTableAdapter();
+            InternacionDAL.H2_Internacion_IdDataTable aTable = adapter.GetData(id);
+
+            if (aTable.Rows.Count > 0)
+            {
+                int_ingreso i = new int_ingreso();
+                i.id = aTable[0].Id;
+                i.fecha = aTable[0].Fecha;
+
+                i.dia = i.fecha.ToShortDateString();
+                i.hora = i.fecha.ToString("HH:mm");
+
+                if (!aTable[0].IsNHCNull()) { i.NHC = aTable[0].NHC; } else { i.NHC = 0; }
+
+                i.servicioId = aTable[0].ServicioId;
+                i.salaId = aTable[0].SalaId;
+                i.CamaId = aTable[0].CamaId;                
+                i.telefono = aTable[0].Telefono;
+                if (!aTable[0].IsDiagnosticoNull()) {i.diagnostico = aTable[0].Diagnostico;} else {i.diagnostico = "";}
+                i.hospitalizadopor = aTable[0].HospPorId;
+                i.motivoingreso = aTable[0].MotivoIngresoId;
+                if (!aTable[0].IsObservacionesNull()) {i.observaciones = aTable[0].Observaciones;} else {i.observaciones = "";}
+                i.especialidad = aTable[0].EspecialidadId;
+                i.medico = aTable[0].MedicoId;
+                return i;
+            }
+            return null;
+        }
+
+
+        public int_egreso Egreso_Id(int id)
+        {
+            InternacionDALTableAdapters.H2_Egreso_Cargar_IdTableAdapter adapter = new InternacionDALTableAdapters.H2_Egreso_Cargar_IdTableAdapter();
+            InternacionDAL.H2_Egreso_Cargar_IdDataTable aTable = adapter.GetData(id);
+
+            if (aTable.Rows.Count > 0)
+            {
+                int_egreso i = new int_egreso();
+
+                if (!aTable[0].IsICD10Null()) { i.diagnosticoicd10 = aTable[0].ICD10; }
+                if (!aTable[0].IsICD10DetalleNull()) {i.detalleicd10 = aTable[0].ICD10Detalle;}
+                if (!aTable[0].IsMotivoDeEgresoIdNull()){i.motivoegreso = aTable[0].MotivoDeEgresoId;}
+                if (!aTable[0].IsObservacionFinalNull()) {i.observacionegreso = aTable[0].ObservacionFinal;}
+                if (!aTable[0].IsOperadoNull()) { if (aTable[0].Operado) { i.operado = "Si"; i.bclas = "btn-success"; } else { i.operado = "No"; i.bclas = "btn-danger"; } } else { i.operado = "No"; i.bclas = "btn-danger"; };
+                if (!aTable[0].IsOperadoFechaNull()) {i.fechaoperado = aTable[0].OperadoFecha.ToShortDateString();}
+                if (!aTable[0].IsEgresoEspecialidadIdNull()) { i.egresoespecialidad = aTable[0].EgresoEspecialidadId; }
+                if (!aTable[0].IsEgresoMedicoIdNull()) { i.egresomedico = aTable[0].EgresoMedicoId; }
+                if (!aTable[0].IsNHCNull()) { i.NHC = Convert.ToInt64(aTable[0].NHC); }
+                if (!aTable[0].IsapellidoNull()) { i.Paciente = aTable[0].apellido; }
+                if (!aTable[0].Isfecha_nacimientoNull()) { i.Edad = Convert.ToInt32(DateTime.Now.Year) - Convert.ToInt32(aTable[0].fecha_nacimiento.ToString("yyyy")); }
+                i.DNI = aTable[0].documento;
+                if (!aTable[0].IsSeccionalNull()) { i.Seccional = aTable[0].Seccional; }
+                if (!aTable[0].IstelefonoNull()) { i.Telefono = aTable[0].telefono; }
+                if (!aTable[0].IsFecha_EgresoNull()) {
+                    i.fechaegreso = aTable[0].Fecha_Egreso;
+                    i.fecha = aTable[0].Fecha_Egreso; 
+                    i.dia = i.fecha.ToShortDateString();
+                    i.hora = i.fecha.ToString("HH:mm");
+                }
+                i.cama = aTable[0].Cama;
+                i.servicio = aTable[0].Servicio;
+                i.sala = aTable[0].Sala;
+                return i;
+            }
+            return null;
+        }
+
+
+
+        public List<DiagnosticoICD10> DiagnosticoICD10(string Codigo)
+        {
+            List<DiagnosticoICD10> Lista = new List<DiagnosticoICD10>();
+            //if (Codigo != "")
+            //{
+                InternacionDALTableAdapters.H2_DiagnosticoICD10TableAdapter adapter = new InternacionDALTableAdapters.H2_DiagnosticoICD10TableAdapter();
+                InternacionDAL.H2_DiagnosticoICD10DataTable aTable = adapter.GetData(Codigo);                
+
+                foreach (InternacionDAL.H2_DiagnosticoICD10Row row in aTable.Rows)
+                {
+                    DiagnosticoICD10 d = new DiagnosticoICD10();
+                    d.Codigo = row.Codigo;
+                    d.Descripcion = row.Descripcion;
+                    Lista.Add(d);
+                }
+            //}
+            return Lista;
+        }
+
+
+
+        public List<DiagnosticoICD10Detalle> DiagnosticoICD10Detalles(string Codigo, string ICD10)
+        {
+            if (ICD10 == "0") ICD10 = "";
+            InternacionDALTableAdapters.H2_DiagnosticoICD10_DetalleTableAdapter adapter = new InternacionDALTableAdapters.H2_DiagnosticoICD10_DetalleTableAdapter();
+            InternacionDAL.H2_DiagnosticoICD10_DetalleDataTable aTable = adapter.GetData(Codigo, ICD10);
+
+            List<DiagnosticoICD10Detalle> Lista = new List<DiagnosticoICD10Detalle>();
+
+            foreach (InternacionDAL.H2_DiagnosticoICD10_DetalleRow row in aTable.Rows)
+            {
+                DiagnosticoICD10Detalle d = new DiagnosticoICD10Detalle();
+                d.Codigo = row.Codigo.Trim();
+                d.Descripcion = row.Descripcion;
+                Lista.Add(d);
+            }
+            return Lista;
+        }
+
+        public void Guardar_Egreso(int Id, string DiagnosticoICD10Id, string DiagnosticoICD10DetalleId, int Motivo, string ObservacionFinal, bool Operado, DateTime? OperadoFecha, int EgresoEspecialidadId, int EgresoMedicoId, int Usuario, DateTime FechaEgreso )
+        {
+            InternacionDALTableAdapters.QueriesTableAdapter adapter = new InternacionDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_Internacion_GuardarEgreso(Id, DiagnosticoICD10Id, DiagnosticoICD10DetalleId, Motivo, ObservacionFinal, Operado, OperadoFecha, EgresoEspecialidadId, EgresoMedicoId, Usuario, FechaEgreso);
+        }
+
+
+        
+
+        public List<buscarinternacion> Buscar_Internacion(int id, DateTime Fecha, DateTime FechaHasta, int ServicioId, int SalaId, int CamaId, int NroDoc, long NroHC, string NombreYApllido)
+        {
+            InternacionDALTableAdapters.H2_Internacion_BuscarTableAdapter adapter = new InternacionDALTableAdapters.H2_Internacion_BuscarTableAdapter();
+            InternacionDAL.H2_Internacion_BuscarDataTable aTable = adapter.GetData(id, Fecha, FechaHasta, ServicioId, SalaId, CamaId, NroDoc,NroHC,NombreYApllido, "1");
+
+            List<buscarinternacion> Lista = new List<buscarinternacion>();
+
+
+            foreach (InternacionDAL.H2_Internacion_BuscarRow row in aTable.Rows)
+            {
+                buscarinternacion i = new buscarinternacion();
+                i.Id = row.Id;
+                i.Fecha = row.Fecha.ToString("dd/MM/yyyy HH:mm");
+                i.Servicio = row.Servicio;
+                i.Sala = row.Sala;
+                i.Cama = row.Cama;
+                i.Paciente = row.NombreYApellido;
+                i.NHC = row.NroHC.ToString();
+                Lista.Add(i);
+            }
+            return Lista;
+            
+        }
+
+
+
+
+        public estado_aislado Estado_Aislado_Sala(int Salaid)
+        {
+            InternacionDALTableAdapters.H2_Sala_Estado_AisladaTableAdapter adapter = new InternacionDALTableAdapters.H2_Sala_Estado_AisladaTableAdapter();
+            InternacionDAL.H2_Sala_Estado_AisladaDataTable aTable = adapter.GetData(Salaid);
+            estado_aislado e = new estado_aislado();
+            e.Estado = "Disponible";
+            e.Clase = "btn-success";
+
+            if (aTable.Rows.Count > 0)
+            {
+
+                if (!aTable[0].IsAisladaNull()){
+                    if (aTable[0].Aislada) { e.Estado = "Aislada"; e.Clase = "btn btn-warning"; } else { e.Estado = "Disponible"; e.Clase = "btn btn-success"; }
+                }
+                
+                e.Usuario = aTable[0].usuario;
+                
+                if (!aTable[0].IsFechaNull())
+                {
+                e.Fecha = aTable[0].Fecha.ToString("dd/MM/yyyy HH:mm");
+                }
+
+                if (!aTable[0].IsMotivoNull())
+                {
+                    e.Motivo = aTable[0].Motivo;
+                }
+                
+                return e;
+            }
+            return e;
+
+        }
+
+
+
+        public void Aislar_Sala(int SalaId, int Usuario, string Motivo, bool Aislada)
+        {
+            InternacionDALTableAdapters.QueriesTableAdapter adapter = new InternacionDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_Sala_Aislar(SalaId, Usuario, Motivo, Aislada);
+        }
+
+        public bool Interncion_Existe(long NHC)
+        {
+            InternacionDALTableAdapters.QueriesTableAdapter adapter = new InternacionDALTableAdapters.QueriesTableAdapter();
+            if (adapter.H2_Internacion_Existe(NHC) != null)
+            {
+            return true;
+            }
+            return false;
+        }
+
+        public CensoToPrint CensoForPrinting(DateTime fecha, string servIds)
+        {
+            CensoToPrint result = new CensoToPrint();
+            InternacionDALTableAdapters.H2_Internacion_Censo_ImpresionTableAdapter adapter = new InternacionDALTableAdapters.H2_Internacion_Censo_ImpresionTableAdapter();
+            InternacionDAL.H2_Internacion_Censo_ImpresionDataTable aTable = adapter.GetData(servIds, fecha);
+
+            ServicioToPrint aServicio = null;
+            SalaToPrint aSala = null;
+            CamaToPrint aCama = null;
+
+            foreach (InternacionDAL.H2_Internacion_Censo_ImpresionRow row in aTable.Rows)
+            {
+                if (aServicio == null || aServicio.ServicioId != row.ServicioId)
+                {
+                    aServicio = new ServicioToPrint(row.ServicioId, row.ServicioDescripcion);
+                    result.Servicios.Add(aServicio);
+                }
+                if (!row.IsSalaIdNull())
+                {
+                    if (aSala == null || aSala.SalaId != row.SalaId)
+                    {
+                        aSala = new SalaToPrint(row.SalaId, row.SalaDescripcion);
+                        aServicio.Salas.Add(aSala);
+                    }
+
+                    if (!row.IsCamaIdNull())
+                    {
+                        if (aCama == null || aCama.CamaId != row.CamaId)
+                        {
+                            aCama = new CamaToPrint(row.CamaId, row.CamaDescripcion);
+                            aSala.Camas.Add(aCama);
+                            if (!row.IsOSNull())
+                                aCama.OS = row.OS;
+                            if (!row.IsDiagnosticoNull())
+                                aCama.Diagnostico = row.Diagnostico;
+                            if (!row.IsEspecialidadDescripcionNull())
+                                aCama.EspecialidadDescripcion = row.EspecialidadDescripcion;
+                            if (!row.IsFechaNull())
+                            {
+                                aCama.Fecha = row.Fecha.ToShortDateString();
+                                aCama.Hora = row.Fecha.ToShortTimeString();
+                            }
+                            if (!row.IsNombreYApellidoNull())
+                                aCama.NombreYApellido = row.NombreYApellido;
+                            if (!row.IsNroHCNull())
+                                aCama.NroHC = row.NroHC.ToString();
+                            if (!row.IsSeccionalDescripcionNull())
+                                aCama.SeccionalDescripcion = row.SeccionalDescripcion;
+                            if (!row.IsEstadoNull())
+                                aCama.Estado = row.Estado;
+
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+
+
+        public intresumen InternacionResumen(int id)
+        {
+            InternacionDALTableAdapters.H2_AtInternados_CamayFechasTableAdapter adapter = new InternacionDALTableAdapters.H2_AtInternados_CamayFechasTableAdapter();
+            InternacionDAL.H2_AtInternados_CamayFechasDataTable aTable = adapter.GetData(id);
+
+            if (aTable.Rows.Count > 0)
+            {
+                intresumen i = new intresumen();
+                i.cama = aTable[0].cama;
+                if (!aTable[0].IsfechaegresoNull()) { i.fechaegreso = aTable[0].fechaegreso.ToString(); }
+                i.fechaingreso = aTable[0].fechaingreso.ToString(); 
+
+                return i;
+            }
+            return null;
+        }
+
+        public Acompa_Internacion DatosAcompa_List(long IdInternacion)
+        {
+            InternacionDALTableAdapters.H2_INTERNACION_DATOSACOMPA_LISTTableAdapter adapter = new InternacionDALTableAdapters.H2_INTERNACION_DATOSACOMPA_LISTTableAdapter();
+            InternacionDAL.H2_INTERNACION_DATOSACOMPA_LISTDataTable aTable = adapter.GetData(IdInternacion);
+
+            if (aTable.Rows.Count > 0)
+            {
+                Acompa_Internacion i = new Acompa_Internacion();
+                if (!aTable[0].IsCalleNull())
+                    i.Calle = aTable[0].Calle;
+                else i.Calle = "";
+                if (!aTable[0].IsCPNull())
+                    i.CP = aTable[0].CP;
+                else i.CP = "";
+                i.DNI = aTable[0].Documento;
+                if (!aTable[0].IsLocalidadNull())
+                    i.Localidad = aTable[0].Localidad;
+                else i.Localidad = "";
+                i.Nombre = aTable[0].Nombre;
+                i.NroInternacion = aTable[0].NroInternacion;
+                if (!aTable[0].IsNumeroNull())
+                    i.Numero = aTable[0].Numero;
+                else i.Numero = "";
+                if (!aTable[0].IsObservacionesNull())
+                    i.Observaciones = aTable[0].Observaciones;
+                else i.Observaciones = "";
+                if (!aTable[0].IsParentezcoNull())
+                    i.Parentezco = aTable[0].Parentezco;
+                else i.Parentezco = "";
+                if (!aTable[0].IsPisoNull())
+                    i.Piso = aTable[0].Piso;
+                else i.Piso = "";
+                if (!aTable[0].IsProvinciaNull())
+                    i.Provincia = aTable[0].Provincia;
+                else i.Provincia = "";
+                if (!aTable[0].IsTelefonoNull())
+                    i.Telefono = aTable[0].Telefono;
+                else i.Telefono = "";
+                i.TipoDoc = aTable[0].TipoDoc;
+                return i;
+            }
+            return null;
+        }
+
+
+    }
+}

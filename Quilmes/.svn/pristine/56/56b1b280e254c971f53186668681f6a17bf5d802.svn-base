@@ -1,0 +1,1049 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Data.SqlClient;
+
+/// <summary>
+/// Summary description for AtConsultorioBLL
+/// </summary>
+namespace Hospital
+{
+    public class AtConsultorioBLL
+    {
+        public AtConsultorioBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+
+
+        public void Pedido_Enfermeria_Guardar(int MedicoId, int ConsultorioId, string Pedido, DateTime Fecha, int Usuario)
+        {
+            if (ConsultorioId == 0) { throw new Exception("Falta Seleccionar Consultorio"); }
+
+            pedidosenfermeria p = new pedidosenfermeria();
+            p = Estado_Pedido(Fecha, MedicoId, Usuario);
+
+            if (p == null)
+            {
+                AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+                adapter.H2_Enfermeria_Pedir(MedicoId, ConsultorioId, Pedido, Fecha, Usuario);
+            }
+            else
+            {
+                if (p.FechaEntregado != null)
+                {
+                    throw new Exception("No se puede modificar un pedido realizado");
+                }
+                else
+                {
+                    AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+                    adapter.H2_Enfermeria_Pedir(MedicoId, ConsultorioId, Pedido, Fecha, Usuario);
+                }
+
+            }
+        }
+
+        public bool MedicoUsuarioExiste(int MedicoId, int Usuario)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            try
+            {
+                int R = Convert.ToInt32(adapter.H2_At_Usuario_Relacionado_Medico(Usuario, MedicoId));
+                if (R == 1) return true; else return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
+        public List<pedidosenfermeria> Enfermeria_Cargar(int MedicoId, int Usuario)
+        {
+            AtConsultoioDALTableAdapters.H2_Enfermeria_Cargar_Pedidos_EnfermeriaTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_Enfermeria_Cargar_Pedidos_EnfermeriaTableAdapter();
+            AtConsultoioDAL.H2_Enfermeria_Cargar_Pedidos_EnfermeriaDataTable aTable = adapter.GetData(MedicoId, Usuario);
+
+            List<pedidosenfermeria> Lista = new List<pedidosenfermeria>();
+
+            foreach (AtConsultoioDAL.H2_Enfermeria_Cargar_Pedidos_EnfermeriaRow row in aTable.Rows)
+            {
+                pedidosenfermeria p = new pedidosenfermeria();
+                p.Fecha = row.Fecha.ToString("dd/MM/yyyy HH:mm:ss");
+                p.MedicoId = row.medicoid;
+                p.ConsultorioId = row.consultorioid;
+                if (!row.IsPedidoNull()) { p.Pedido = row.Pedido; }
+                if (!row.IsUsuarioIdNull()) { p.UsuarioId = row.UsuarioId; }
+                if (!row.IsEstadoNull())
+                {
+                    p.Estado = "Entregado";
+                    p.Clase = "success";
+                }
+                if (!row.IsFechaEntregadoNull()) { p.FechaEntregado = row.FechaEntregado.ToString("dd/MM/yyyy HH:mm:ss"); }
+
+
+                Lista.Add(p);
+            }
+
+            return Lista;
+        }
+
+
+
+
+
+        public List<pedidosenfermeria> Enfermeria_Cargar_Todos(int MedicoId, int ConsultorioId, int Cuales)
+        {
+            AtConsultoioDALTableAdapters.H2_Enfermeria_Pedidos_CargarTodosTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_Enfermeria_Pedidos_CargarTodosTableAdapter();
+            DateTime Fecha = DateTime.Now;
+            AtConsultoioDAL.H2_Enfermeria_Pedidos_CargarTodosDataTable aTable = adapter.GetData(MedicoId, ConsultorioId, Fecha, Cuales);
+
+            List<pedidosenfermeria> Lista = new List<pedidosenfermeria>();
+
+            foreach (AtConsultoioDAL.H2_Enfermeria_Pedidos_CargarTodosRow row in aTable.Rows)
+            {
+                pedidosenfermeria p = new pedidosenfermeria();
+                p.Fecha = row.Fecha.ToString("dd/MM/yyyy HH:mm:ss");
+                p.MedicoId = row.medicoid;
+                p.ConsultorioId = row.consultorioid;
+                if (!row.IsPedidoNull()) { p.Pedido = row.Pedido; }
+                if (!row.IsUsuarioIdNull()) { p.UsuarioId = row.UsuarioId; }
+                if (!row.IsEstadoNull())
+                {
+                    p.Estado = "Entregado";
+                    p.Clase = "success";
+                }
+                else
+                {
+                    p.Clase = "warning";
+                }
+                if (!row.IsFechaEntregadoNull()) { p.FechaEntregado = row.FechaEntregado.ToString("dd/MM/yyyy HH:mm:ss"); }
+                p.Consultorio = row.ConsultorioNombre;
+
+                Lista.Add(p);
+            }
+
+            return Lista;
+        }
+
+
+
+        public void Borrar_Pedido(DateTime Fecha, int MedicoId, int Usuario)
+        {
+            if (MedicoId == 0 || Usuario == 0) { throw new Exception("Error Inesperado, recargue el sistema"); }
+
+
+            if (Estado_Pedido(Fecha, MedicoId, Usuario).FechaEntregado == null)
+            {
+                AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+                adapter.H2_Enfermeria_Borrar_Pedidos(MedicoId, Fecha, Usuario);
+            }
+            else
+            {
+                throw new Exception("No se puede eliminar un pedido entregado");
+            }
+        }
+
+        public pedidosenfermeria Estado_Pedido(DateTime Fecha, int MedicoId, int Usuario)
+        {
+            AtConsultoioDALTableAdapters.H2_Enfermeria_Pedidos_EstadoTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_Enfermeria_Pedidos_EstadoTableAdapter();
+            AtConsultoioDAL.H2_Enfermeria_Pedidos_EstadoDataTable aTable = adapter.GetData(MedicoId, Usuario, Fecha);
+
+            if (aTable.Rows.Count > 0)
+            {
+                pedidosenfermeria p = new pedidosenfermeria();
+                p.Fecha = aTable[0].Fecha.ToString();
+                p.MedicoId = aTable[0].medicoid;
+                p.ConsultorioId = aTable[0].consultorioid;
+                if (!aTable[0].IsPedidoNull()) { p.Pedido = aTable[0].Pedido; }
+                if (!aTable[0].IsUsuarioIdNull()) { p.UsuarioId = aTable[0].UsuarioId; }
+                if (!aTable[0].IsEstadoNull())
+                    if (!aTable[0].IsFechaEntregadoNull()) { p.FechaEntregado = aTable[0].FechaEntregado.ToString(); }
+
+                return p;
+            }
+
+            return null;
+        }
+
+
+
+
+        public void PedidoEntrgaCambiarEstado(DateTime Fecha, int MedicoId, int Usuario, int ConsultorioId, int Estado)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_Enfermeria_Entregar(MedicoId, ConsultorioId, Fecha, Estado, Usuario);
+
+        }
+
+
+        public void LlamarPAciente(DateTime Fecha, int MedicoId, int Especialidad, int Estado, int Usuario)
+        {
+
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_AtConsultorio_ActualizarTurno(Fecha, MedicoId, Especialidad, 1);
+
+        }
+
+
+        public void LlamarPAcienteFinalizar(DateTime Fecha, int MedicoId, int Especialidad, int Estado, int Usuario, long NHC)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_AtConsultorio_Finalizar_ActualizarTurno(Fecha, MedicoId, Especialidad, Estado);
+
+            Hospital.BonosBLL B = new BonosBLL();
+            long Doc = Convert.ToInt64(NHC.ToString().Substring(2,8));
+
+            usuarios U = (usuarios)HttpContext.Current.Session["Usuario"];
+            Estadisticas.Est_PacienteMovBLL E = new Estadisticas.Est_PacienteMovBLL();
+            E.EstPacMov(Doc, 6, (Int32)U.id, "At. Finaliazada");
+
+        }
+
+
+
+        public atconsultorio At_Consultorio_BonoId(int BonoId, DateTime Fecha)
+        {
+
+            try
+            {
+                AtConsultoioDALTableAdapters.H2_AtConsultorio_PorBonoIdTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_PorBonoIdTableAdapter();
+                AtConsultoioDAL.H2_AtConsultorio_PorBonoIdDataTable aTable = adapter.GetData(Fecha, BonoId);
+
+                if (aTable.Rows.Count > 0)
+                {
+                    atconsultorio a = new atconsultorio();
+                    a.Fecha = aTable[0].Fecha.ToString();
+                    a.Hora = aTable[0].Hora.ToString();
+                    a.Medico = aTable[0].Medico;
+                    a.Especialidad = aTable[0].Especialidad;
+                    a.Consultorio = aTable[0].Consultorio;
+                    a.TurnoId = aTable[0].Turno_Id;
+                    a.Documento = aTable[0].documento.ToString();
+                    return a;
+                }
+                else
+                {
+                    throw new Exception("Verifique la fecha del Turno");
+                }
+
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception(ex.Message);
+            }
+
+
+            return null;
+        }
+
+
+
+        public List<atconsultorio> At_Consultorio_PorDocumento(int Documento, DateTime Fecha)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_PorDocumentoTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_PorDocumentoTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_PorDocumentoDataTable aTable = adapter.GetData(Fecha, Documento);
+
+            List<atconsultorio> Lista = new List<atconsultorio>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_PorDocumentoRow row in aTable.Rows)
+            {
+                atconsultorio a = new atconsultorio();
+                a.Fecha = row.Fecha.ToString();
+                a.Hora = row.Hora.ToString();
+                a.Medico = row.Medico;
+                a.Especialidad = row.Especialidad;
+                a.Consultorio = row.Consultorio;
+                a.TurnoId = row.Turno_Id;
+                a.EspecialidadId = row.TurnoEspecialidadId;
+
+                Lista.Add(a);
+            }
+
+            return Lista;
+        }
+
+
+
+        public List<bono_libre> At_Consultorio_Bono_Libres(int Documento, int Especialidad)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_BonoLibreTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_BonoLibreTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_BonoLibreDataTable aTable = adapter.GetData(Documento, Especialidad);
+
+            List<bono_libre> Lista = new List<bono_libre>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_BonoLibreRow row in aTable.Rows)
+            {
+                bono_libre b = new bono_libre();
+
+                b.Medico = row.Medico;
+                b.Bono_id = row.Bono_Id.ToString();
+                b.Especialidad = row.Especialidad;
+                b.Fecha = row.Fecha.ToString("dd/MM/yyyy");
+
+                Lista.Add(b);
+            }
+
+            return Lista;
+        }
+
+
+        public void At_Consultorio_Confirmar_Turnos(int Usuario, int BonoId, int TurnosId)
+        {
+
+
+            if (BonoId > 0 && BonoId > 0)
+            {
+                AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+                adapter.H2_AtConsultorio_Confirmar_Turnos(Usuario, BonoId, TurnosId);
+            }
+            else
+            {
+                throw new Exception("Falta Seleccionar Bono y/o Turno");
+            }
+        }
+
+
+
+
+        public List<medicos> Medicos_Por_Usurios(int Usuario)
+        {
+            AtConsultoioDALTableAdapters.H2_At_Consultorio_Relacion_Usuario_MedicoTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_At_Consultorio_Relacion_Usuario_MedicoTableAdapter();
+
+            AtConsultoioDAL.H2_At_Consultorio_Relacion_Usuario_MedicoDataTable aTable = adapter.GetData(Usuario);
+
+            List<medicos> Lista = new List<medicos>();
+
+            foreach (AtConsultoioDAL.H2_At_Consultorio_Relacion_Usuario_MedicoRow row in aTable.Rows)
+            {
+                medicos m = new medicos();
+                m.Id = row.Id;
+                m.Medico = row.Medico;
+                Lista.Add(m);
+            }
+
+            return Lista;
+        }
+
+
+
+        public List<listapacientes> At_Consultorio_ListaPacientes(int MedicoId, int Especialidad, DateTime Fecha)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_ListaPacientesTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_ListaPacientesTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_ListaPacientesDataTable aTable = adapter.GetData(Especialidad, MedicoId, Fecha);
+
+            List<listapacientes> Lista = new List<listapacientes>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_ListaPacientesRow row in aTable.Rows)
+            {
+                listapacientes l = new listapacientes();
+                l.Fecha = row.TurnoFecha.ToString("dd/MM/yyyy HH:mm");
+                l.NHC = row.NHC.ToString();
+
+                if (!row.IsEstadoNull()) { l.Estado = row.Estado; } else { l.Estado = "0"; }
+                if (!row.IsFInicioNull()) { l.LLamadoI = row.FInicio.ToShortTimeString(); }
+                if (!row.IsFFinNull()) { l.LLamadoF = row.FFin.ToShortTimeString(); }
+                if (!row.IsPacienteNull()) { l.Paciente = row.Paciente; }
+                if (!row.IsSeccionalNull()) { l.Seccional = row.Seccional; }
+                Lista.Add(l);
+            }
+
+            return Lista;
+        }
+
+
+
+
+        public long At_Consultorio_Certificado_Medico_Guardar(int Usuario, long NHC, string Indicaciones, int MedicoId)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_Certificado_Medico_Guardar(NHC, Indicaciones, MedicoId, Usuario);
+            return Convert.ToInt64(R);
+
+        }
+
+
+
+        public certificadosmedicosImpresion CertificadoMedico_NHC(long NHC, int MedicoId)
+        {
+            AtConsultoioDALTableAdapters.H2_Certificado_Medico_Cargar_Ultimo_NHCTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_Certificado_Medico_Cargar_Ultimo_NHCTableAdapter();
+            AtConsultoioDAL.H2_Certificado_Medico_Cargar_Ultimo_NHCDataTable aTable = adapter.GetData(MedicoId, NHC);
+
+            certificadosmedicosImpresion c = new certificadosmedicosImpresion();
+
+            if (aTable.Rows.Count > 0)
+            {
+                if (!aTable[0].IsIndicacionesNull()) { c.Indicaciones = aTable[0].Indicaciones; } else { c.Indicaciones = ""; }
+                return c;
+            }
+
+            return null;
+        }
+
+
+
+        public long GuardarOrdenesdeEstudio(List<ordenesdeestudiospracticas> Practicas, long Protocolo, DateTime FechaEntrega, int MedicoId, int Patologia, long NHC, DateTime FechaInicio, string DiagnosticoId)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_AtConsultorio_OrdendeEstudio_Guardar_Cab(Protocolo, FechaEntrega, MedicoId, Patologia, NHC, FechaInicio, DiagnosticoId, null, null);
+
+            long Prot = Convert.ToInt64(R);
+
+            foreach (ordenesdeestudiospracticas practica in Practicas)
+            {
+                if (practica.Estado == "0")
+                {
+                    adapter.H2_AtConsultorio_OrdendeEstudio_Borrar_Det(practica.PracticaId, Prot);
+                }
+            }
+
+            foreach (ordenesdeestudiospracticas practica in Practicas)
+            {
+                if (practica.Estado != "0")
+                {
+                    adapter.H2_AtConsultorio_OrdendeEstudio_Guardar_Det(practica.PracticaId, practica.Observacion, Prot);
+                }
+
+            }
+
+            return Prot;
+
+        }
+
+
+        public List<ordenesdeestudiospracticas> At_Consultorio_CargarPracticas_Detalles(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_OrdenesEstudio_CargarPracticasTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_OrdenesEstudio_CargarPracticasTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_OrdenesEstudio_CargarPracticasDataTable aTable = adapter.GetData(Protocolo);
+
+            List<ordenesdeestudiospracticas> Lista = new List<ordenesdeestudiospracticas>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_OrdenesEstudio_CargarPracticasRow row in aTable.Rows)
+            {
+                ordenesdeestudiospracticas od = new ordenesdeestudiospracticas();
+                od.Codigo = row.Codigo;
+                od.PracticaId = row.practicaid;
+                od.Nombre = row.Descripcion;
+                if (!row.IsObservacionNull()) { od.Observacion = row.Observacion; }
+                Lista.Add(od);
+            }
+
+            return Lista;
+        }
+
+
+        public ordenesdeestudios At_Consultorio_CargarPracticas_Cab(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_OrdenesEstudio_CargarCABTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_OrdenesEstudio_CargarCABTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_OrdenesEstudio_CargarCABDataTable aTable = adapter.GetData(Protocolo);
+
+            ordenesdeestudios od = new ordenesdeestudios();
+
+            if (aTable.Rows.Count > 0)
+            {
+                if (!aTable[0].IsFechaInicioNull()) { od.fechainicio = aTable[0].FechaInicio.ToShortDateString(); }
+                od.medicoid = aTable[0].MedicoId.ToString();
+                if (!aTable[0].IsDiagnosticoIdNull()) { od.diagnosticoid = aTable[0].DiagnosticoId; }
+                if (!aTable[0].IsPatologiaNull()) { od.patologiaid = aTable[0].Patologia.ToString(); }
+
+            }
+
+            return od;
+        }
+
+
+
+        public List<ordenesdeestudiosbuscar> OrdenesdeEstudiosBuscar(long NHC, string Afiliado, DateTime FechaInicio, DateTime FechaFinal)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_BuscarOrdenesEstudiosTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_BuscarOrdenesEstudiosTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_BuscarOrdenesEstudiosDataTable aTable = adapter.GetData(NHC, Afiliado, FechaInicio, FechaFinal);
+
+            List<ordenesdeestudiosbuscar> Lista = new List<ordenesdeestudiosbuscar>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_BuscarOrdenesEstudiosRow row in aTable.Rows)
+            {
+                ordenesdeestudiosbuscar od = new ordenesdeestudiosbuscar();
+                od.documento = row.documento.ToString();
+                od.fechaingreso = row.FechaInicio.ToShortDateString();
+                od.medicoid = row.MedicoId.ToString();
+                od.NHC = row.NHC.ToString();
+                od.paciente = row.apellido;
+                od.protocolo = row.Protocolo;
+                Lista.Add(od);
+            }
+
+            return Lista;
+        }
+
+
+
+        public List<ordenesdeestudiosbuscar> OrdenesdeTrasladoBuscar(long NHC, string Afiliado, DateTime FechaInicio, DateTime FechaFinal)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_BuscarOrdenesTrasladoTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_BuscarOrdenesTrasladoTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_BuscarOrdenesTrasladoDataTable aTable = adapter.GetData(NHC, Afiliado, FechaInicio, FechaFinal);
+
+            List<ordenesdeestudiosbuscar> Lista = new List<ordenesdeestudiosbuscar>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_BuscarOrdenesTrasladoRow row in aTable.Rows)
+            {
+                ordenesdeestudiosbuscar od = new ordenesdeestudiosbuscar();
+                od.documento = row.documento.ToString();
+                od.fechaingreso = row.FechaGuardado.ToShortDateString();
+                od.medicoid = row.MEDICO_ID.ToString();
+                od.NHC = row.NHC.ToString();
+                od.paciente = row.apellido;
+                od.protocolo = row.ID_ORDEN_TRASLADO;
+                Lista.Add(od);
+            }
+
+            return Lista;
+        }
+
+
+
+
+        public int Guardar_Orden_Traslado(long NHC, DateTime Fecha_Atencion, int Medico_Id, string Comun,
+            string Utim, string Neonatal, string Diagnostico, string Observaciones, string Desde_Traslado, string Localidad_Traslado,
+            string Calles_Traslado, string Hasta_Traslado, string Localidad_Traslado_Hasta, string Horario_Destino, bool Con_Regreso,
+            bool De_Ambula, string Empresa, string Operador_Sol, DateTime Fecha_Sol, string Hora_Sol, string Operador_Recep,
+            DateTime Fecha_Recep, string Hora_Recep, string Calles_Destino)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+
+            object ID_Orden = adapter.H2_AtConsultorio_Orden_Traslado_Guardar(NHC, Fecha_Atencion, Medico_Id, Comun,
+             Utim, Neonatal, Diagnostico, Observaciones, Desde_Traslado, Localidad_Traslado,
+             Calles_Traslado, Hasta_Traslado, Localidad_Traslado_Hasta, Horario_Destino, Con_Regreso,
+             De_Ambula, Empresa, Operador_Sol, Fecha_Sol, Hora_Sol, Operador_Recep,
+             Fecha_Recep, Hora_Recep, Calles_Destino);
+            int Id;
+            if (int.TryParse(ID_Orden.ToString(), out Id))
+            {
+                return Id;
+            }
+            else return 0;
+        }
+
+
+        public ordentraslado Cargar_Orden_Traslado(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_Cargar_SolicitudTrasladoTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_Cargar_SolicitudTrasladoTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_Cargar_SolicitudTrasladoDataTable aTable = adapter.GetData(Protocolo);
+            ordentraslado o = new ordentraslado();
+            if (aTable.Rows.Count > 0)
+            {
+
+                o.protocolo = aTable[0].ID_ORDEN_TRASLADO;
+                o.NHC = aTable[0].NHC;
+                o.Fecha_Atencion = aTable[0].FECHA_ATENCION.ToShortDateString();
+                o.Medico_Id = aTable[0].MEDICO_ID;
+                o.Comun = aTable[0].COMUN;
+                o.Utim = aTable[0].UTIM;
+                o.Neonatal = aTable[0].NEONATAL;
+                o.Diagnostico = aTable[0].DIAGNOSTICO;
+                o.Observaciones = aTable[0].OBSERVACIONES;
+                o.Desde_Traslado = aTable[0].DESDE_TRASLADO;
+                o.Localidad_Traslado = aTable[0].LOCALIDAD_TRASLADO;
+                o.Calles_Traslado = aTable[0].CALLES_TRASLADO;
+                o.Hasta_Traslado = aTable[0].HASTA_TRASLADO;
+                o.Localidad_Traslado_Hasta = aTable[0].LOCALIDAD_TRASLADO;
+                o.Horario_Destino = aTable[0].HORARIO_DESTINO.ToString().Substring(0, 5);
+                o.Con_Regreso = aTable[0].CON_REGRESO;
+                o.De_Ambula = aTable[0].DE_AMBULA;
+                o.Empresa = aTable[0].EMPRESA;
+                o.Operador_Sol = aTable[0].OPERADOR_SOL;
+                o.Fecha_Sol = aTable[0].FECHA_SOL.ToShortDateString();
+                o.Hora_Sol = aTable[0].HORA_SOL.ToString().Substring(0, 5);
+                o.Operador_Recep = aTable[0].OPERADOR_RECEP;
+                o.Fecha_Recep = aTable[0].FECHA_RECEP.ToShortDateString();
+                o.Hora_Recep = aTable[0].HORA_RECEP.ToString().Substring(0, 5);
+                o.Calles_Destino = aTable[0].ENTRE_CALLES_DESTINO;
+
+            }
+
+            return o;
+        }
+
+
+        public List<monodrogas> MonoDrogas(int Numero)
+        {
+            AtConsultoioDALTableAdapters.H2_MonoDrogas_ListaTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_MonoDrogas_ListaTableAdapter();
+
+            AtConsultoioDAL.H2_MonoDrogas_ListaDataTable aTable = adapter.GetData(Numero);
+
+            List<monodrogas> Lista = new List<monodrogas>();
+
+            foreach (AtConsultoioDAL.H2_MonoDrogas_ListaRow row in aTable.Rows)
+            {
+                monodrogas m = new monodrogas();
+                m.id = row.id;
+                m.numero = row.Numero;
+                if (!row.IsMonoDrogaNull()) { m.nombre = row.MonoDroga; }
+                if (!row.IsActivoNull()) { m.activo = false; } else { m.activo = true; }
+                Lista.Add(m);
+            }
+
+            return Lista;
+        }
+
+        public List<insumos_medidas> Insumos_Medidas()
+        {
+            AtConsultoioDALTableAdapters.H2_MEDIDAS_LISTTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_MEDIDAS_LISTTableAdapter();
+
+            AtConsultoioDAL.H2_MEDIDAS_LISTDataTable aTable = adapter.GetData();
+
+            List<insumos_medidas> Lista = new List<insumos_medidas>();
+
+            foreach (AtConsultoioDAL.H2_MEDIDAS_LISTRow row in aTable.Rows)
+            {
+                insumos_medidas m = new insumos_medidas();
+                m.id = row.id;
+                m.medida = row.medida;
+                Lista.Add(m);
+            }
+
+            return Lista;
+        }
+
+
+        public List<insumos_presentacion> Insumos_Presentacion()
+        {
+            AtConsultoioDALTableAdapters.H2_PRESENTACION_LISTTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_PRESENTACION_LISTTableAdapter();
+
+            AtConsultoioDAL.H2_PRESENTACION_LISTDataTable aTable = adapter.GetData();
+
+            List<insumos_presentacion> Lista = new List<insumos_presentacion>();
+
+            foreach (AtConsultoioDAL.H2_PRESENTACION_LISTRow row in aTable.Rows)
+            {
+                insumos_presentacion p = new insumos_presentacion();
+                p.id = row.id;
+                p.presentacion = row.presentacion;
+                Lista.Add(p);
+            }
+
+            return Lista;
+        }
+
+
+
+        public Int64 BorrarReceta(long Protocolo, int MonoDrogaId)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+
+            if (Protocolo != 0 && MonoDrogaId != 0)
+            {
+                {
+                    {
+                        object Nro = adapter.H2_AtConsultorio_Recetas_Borrar_Det(MonoDrogaId, Protocolo);
+                        return Convert.ToInt64(Protocolo);
+                    }
+                }
+            }
+
+            return 0;
+        }
+
+
+
+        public Int64 Guardar_Recetas(List<recetasmonodrogas> MonoDrogas, long Protocolo, DateTime FechaEntrega, int MedicoId, int Patologia, long NHC, DateTime FechaInicio, string DiagnosticoId, int AutoizadoId, string PeriodoSolicitado)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object Nro = "";
+
+            Nro = adapter.H2_AtConsultorio_Recetas_Guardar_Cab(Protocolo, FechaEntrega, MedicoId, Patologia, NHC, FechaInicio, DiagnosticoId, AutoizadoId, PeriodoSolicitado);
+
+
+            long NroR = Convert.ToInt64(Nro);
+
+            foreach (recetasmonodrogas mono in MonoDrogas)
+            {
+                if (mono.Estado == "0")
+                {
+                    adapter.H2_AtConsultorio_Recetas_Borrar_Det(mono.monodrogascodigo, NroR);
+                }
+            }
+
+            foreach (recetasmonodrogas mono in MonoDrogas)
+            {
+                if (mono.Estado != "0")
+                {
+                    adapter.H2_AtConsultorio_Recetas_Guardar_Det(mono.monodrogascodigo, mono.adicional, mono.dosis_diaria, mono.dosis, mono.unidad_medida_id, mono.presentacion_id, NroR, mono.observacion);
+                }
+
+            }
+
+
+            return NroR;
+        }
+
+
+
+
+        public List<recetas_cab> CargarRecetas_CAB(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_Recetas_Cargar_CABTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_Recetas_Cargar_CABTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_Recetas_Cargar_CABDataTable aTable = adapter.GetData(Protocolo);
+
+            List<recetas_cab> Lista = new List<recetas_cab>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_Recetas_Cargar_CABRow row in aTable.Rows)
+            {
+                recetas_cab r = new recetas_cab();
+                if (!row.IsAutoizadoIdNull()) { r.autorizanteid = row.AutoizadoId; }
+                if (!row.IsDiagnosticoIdNull()) { r.diagnoticoid = row.DiagnosticoId; }
+                if (!row.IsFechaEntregaNull()) { r.fechaentrega = row.FechaEntrega.ToShortDateString(); }
+                if (!row.IsFechaInicioNull()) { r.fechainicio = row.FechaInicio.ToShortDateString(); }
+                if (!row.IsMedicoIdNull()) { r.medicoid = row.MedicoId; }
+                if (!row.IsNHCNull()) { r.NHC = row.NHC; }
+                if (!row.IsPatologiaNull()) { r.patologia = row.Patologia; }
+                if (!row.IsPeriodoSolicitadoNull()) { r.periodo = row.PeriodoSolicitado; }
+                r.protocolo = row.Protocolo;
+                Lista.Add(r);
+            }
+
+            return Lista;
+        }
+
+        public List<recetasmonodrogas> CargarRecetas_DET(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_Recetas_Cargar_DETTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_Recetas_Cargar_DETTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_Recetas_Cargar_DETDataTable aTable = adapter.GetData(Protocolo);
+
+            List<recetasmonodrogas> Lista = new List<recetasmonodrogas>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_Recetas_Cargar_DETRow row in aTable.Rows)
+            {
+                recetasmonodrogas r = new recetasmonodrogas();
+                r.adicional = row.adicional;
+                if (!row.IsDosisNull()) { r.dosis = row.Dosis; }
+                if (!row.IsDosisDiarioNull()) { r.dosis_diaria = row.DosisDiario; }
+                r.monodrogascodigo = row.monodrograid;
+                r.monodrogasnombre = row.MonoDroga;
+                if (!row.IsObservacionNull()) { r.observacion = row.Observacion; }
+                if (!row.IsPresentacionIdNull()) { r.presentacion_id = row.PresentacionId; } else { r.presentacion_id = 0; r.presentacion = ""; }
+                if (!row.IsUnidad_PresentacionNull()) { r.presentacion = row.Unidad_Presentacion; } else { r.presentacion = ""; }
+                if (!row.IsUnidadIdNull()) { r.unidad_medida_id = row.UnidadId; } else { r.unidad_medida_id = 0; }
+                if (!row.IsUnidad_NombreNull()) { r.unidad_medida = row.Unidad_Nombre; } else { r.unidad_medida = ""; }
+                Lista.Add(r);
+            }
+
+            return Lista;
+        }
+
+
+
+        public Int64 UltimaReceta(long NHC)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+
+            if (NHC != 0)
+            {
+                object Nro = adapter.H2_AtConsultorio_UltimaReceta(NHC);
+                return Convert.ToInt64(Nro);
+            }
+
+            return 0;
+        }
+
+
+
+
+        public List<recetas_busqueda> BuscarRecetas(DateTime IngresoDesde, DateTime IngresoHasta, DateTime EgresoDesde, DateTime EgresoHasta, long NHC, string Paciente)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_Receta_BusquedaTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_Receta_BusquedaTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_Receta_BusquedaDataTable aTable = adapter.GetData(IngresoDesde, IngresoHasta, EgresoDesde, EgresoHasta, NHC, Paciente);
+
+            List<recetas_busqueda> Lista = new List<recetas_busqueda>();
+
+            foreach (AtConsultoioDAL.H2_AtConsultorio_Receta_BusquedaRow row in aTable.Rows)
+            {
+                recetas_busqueda r = new recetas_busqueda();
+                r.apellido = row.apellido;
+                if (!row.IsFechaInicioNull()) { r.fechainicio = row.FechaInicio.ToShortDateString(); }
+                if (!row.IsNHCNull()) { r.NHC = row.NHC; }
+                r.protocolo = row.Protocolo;
+                Lista.Add(r);
+            }
+
+            return Lista;
+        }
+
+
+
+        public long Guarcar_Diabetes(long Protocolo, int Tipo, bool Obesidad, bool Dislipidemia, bool HC, string otros, int Retinopatia, int Neuropatia,
+            int ivp, int CI, int Nefropatia, int Pie, int hta, int tabaco, long NHC, int Medico_Diabetes_Id,
+            string MotivoModificacion, string HbgA1C, string HDL, string TG, string FRUCTOSAMINA, string URICEMIA, string CLEARENCEC, string UREA, string TGO, string BT,
+            string BD, string COLTOTAL, string LDL, string MICROALBUMINURIA, string CREA, string GLUCEMIA, string PROTEINURIA, string CPK, string TGP, string BI, string OJO_D,
+            string OJO_I, string OTROS_LABORATORIO, DateTime FECHA_ANALISIS, string EVOLUCION, string Peso, string Talla, string Metformina, string Glibenciamida, string Glicazida,
+            string Glimepirida, string Glipizida, string Rosiglitazona, string Atorvastatina, string Sinvastantina, string Ezetimibe, string Fenofibrato, string NPH, string Rapida,
+            string RapidaAnalogo, string Lispro, string Ultralenta, string Mix25, string Mix30, string OTROS_MEDICAMENTOS
+            )
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_AtConsultorio_Diabetes_Guardar(
+                 Protocolo, Tipo, Obesidad, Dislipidemia, HC, otros, Retinopatia, Neuropatia,
+             ivp, CI, Nefropatia, Pie, hta, tabaco, NHC, Medico_Diabetes_Id, MotivoModificacion, HbgA1C, HDL, TG, FRUCTOSAMINA, URICEMIA, CLEARENCEC, UREA, TGO, BT,
+             BD, COLTOTAL, LDL, MICROALBUMINURIA, CREA, GLUCEMIA, PROTEINURIA, CPK, TGP, BI, OJO_D,
+             OJO_I, OTROS_LABORATORIO, FECHA_ANALISIS, EVOLUCION, Peso, Talla, Metformina, Glibenciamida, Glicazida,
+             Glimepirida, Glipizida, Rosiglitazona, Atorvastatina, Sinvastantina, Ezetimibe, Fenofibrato, NPH, Rapida,
+             RapidaAnalogo, Lispro, Ultralenta, Mix25, Mix30, OTROS_MEDICAMENTOS
+                );
+            return Convert.ToInt64(R);
+
+        }
+
+
+
+
+        public cargar_diabetes CargarDiabetes(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_CargaDiabetesTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_CargaDiabetesTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_CargaDiabetesDataTable aTable = adapter.GetData(Protocolo);
+
+            if (aTable.Rows.Count > 0)
+            {
+                cargar_diabetes r = new cargar_diabetes();
+
+                r.Protocolo = aTable[0].id;
+                if (!aTable[0].IsTipoNull()) r.Tipo = aTable[0].Tipo;
+                if (!aTable[0].IsObesidadNull()) r.Obesidad = aTable[0].Obesidad;
+                if (!aTable[0].IsDislipidemiaNull()) r.Dislipidemia = aTable[0].Dislipidemia;
+                if (!aTable[0].IsHCNull()) r.HC = aTable[0].HC;
+                if (!aTable[0].IsOtrosNull()) r.otros = aTable[0].Otros;
+                if (!aTable[0].IsRetinopatiaNull()) r.Retinopatia = aTable[0].Retinopatia;
+                if (!aTable[0].IsNeuropatiaNull()) r.Neuropatia = aTable[0].Neuropatia;
+                if (!aTable[0].IsivpNull()) r.ivp = aTable[0].ivp;
+                if (!aTable[0].IsivpNull()) r.CI = aTable[0].CI;
+                if (!aTable[0].IsNefropatiaNull()) r.Nefropatia = aTable[0].Nefropatia;
+                if (!aTable[0].IsPieNull()) r.Pie = aTable[0].Pie;
+                if (!aTable[0].IshtaNull()) r.hta = aTable[0].hta;
+                if (!aTable[0].IstabacoNull()) r.tabaco = aTable[0].tabaco;
+                if (!aTable[0].IsNHCNull()) r.NHC = aTable[0].NHC;
+                if (!aTable[0].IsMedico_Diabetes_IdNull()) r.Medico_Diabetes_Id = aTable[0].Medico_Diabetes_Id;
+                if (!aTable[0].IsMotivoModificacionNull()) r.MotivoModificacion = aTable[0].MotivoModificacion;
+                if (!aTable[0].IsHbgA1CNull()) r.HbgA1C = aTable[0].HbgA1C;
+                if (!aTable[0].IsHDLNull()) r.HDL = aTable[0].HDL;
+                if (!aTable[0].IsTGNull()) r.TG = aTable[0].TG;
+                if (!aTable[0].IsFRUCTOSAMINANull()) r.FRUCTOSAMINA = aTable[0].FRUCTOSAMINA;
+                if (!aTable[0].IsURICEMIANull()) r.URICEMIA = aTable[0].URICEMIA;
+                if (!aTable[0].IsCLEARENCECNull()) r.CLEARENCEC = aTable[0].CLEARENCEC;
+                if (!aTable[0].IsUREANull()) r.UREA = aTable[0].UREA;
+                if (!aTable[0].IsTGONull()) r.TGO = aTable[0].TGO;
+                if (!aTable[0].IsBTNull()) r.BT = aTable[0].BT;
+                if (!aTable[0].IsBDNull()) r.BD = aTable[0].BD;
+                if (!aTable[0].IsCOLTOTALNull()) r.COLTOTAL = aTable[0].COLTOTAL;
+                if (!aTable[0].IsLDLNull()) r.LDL = aTable[0].LDL;
+                if (!aTable[0].IsMICROALBUMINURIANull()) r.MICROALBUMINURIA = aTable[0].MICROALBUMINURIA;
+                if (!aTable[0].IsCREANull()) r.CREA = aTable[0].CREA;
+                if (!aTable[0].IsGLUCEMIANull()) r.GLUCEMIA = aTable[0].GLUCEMIA;
+                if (!aTable[0].IsPROTEINURIANull()) r.PROTEINURIA = aTable[0].PROTEINURIA;
+                if (!aTable[0].IsCPKNull()) r.CPK = aTable[0].CPK;
+                if (!aTable[0].IsTGPNull()) r.TGP = aTable[0].TGP;
+                if (!aTable[0].IsBINull()) r.BI = aTable[0].BI;
+                if (!aTable[0].IsOJO_DNull()) r.OJO_D = aTable[0].OJO_D;
+                if (!aTable[0].IsOJO_INull()) r.OJO_I = aTable[0].OJO_I;
+                if (!aTable[0].IsOTROS_LABORATORIONull()) r.OTROS_LABORATORIO = aTable[0].OTROS_LABORATORIO;
+                if (!aTable[0].IsFECHA_ANALISISNull()) r.fechaanalisis = aTable[0].FECHA_ANALISIS.ToShortDateString();
+                if (!aTable[0].IsEVOLUCIONNull()) r.EVOLUCION = aTable[0].EVOLUCION;
+                if (!aTable[0].IsPesoNull()) r.Peso = aTable[0].Peso;
+                if (!aTable[0].IsTallaNull()) r.Talla = aTable[0].Talla;
+                if (!aTable[0].IsMetforminaNull()) r.Metformina = aTable[0].Metformina;
+                if (!aTable[0].IsGlibenciamidaNull()) r.Glibenciamida = aTable[0].Glibenciamida;
+                if (!aTable[0].IsGlicazidaNull()) r.Glicazida = aTable[0].Glicazida;
+                if (!aTable[0].IsGlimepiridaNull()) r.Glimepirida = aTable[0].Glimepirida;
+                if (!aTable[0].IsGlipizidaNull()) r.Glipizida = aTable[0].Glipizida;
+                if (!aTable[0].IsRosiglitazonaNull()) r.Rosiglitazona = aTable[0].Rosiglitazona;
+                if (!aTable[0].IsAtorvastatinaNull()) r.Atorvastatina = aTable[0].Atorvastatina;
+                if (!aTable[0].IsSinvastantinaNull()) r.Sinvastantina = aTable[0].Sinvastantina;
+                if (!aTable[0].IsEzetimibeNull()) r.Ezetimibe = aTable[0].Ezetimibe;
+                if (!aTable[0].IsFenofibratoNull()) r.Fenofibrato = aTable[0].Fenofibrato;
+                if (!aTable[0].IsNPHNull()) r.NPH = aTable[0].NPH;
+                if (!aTable[0].IsRapidaNull()) r.Rapida = aTable[0].Rapida;
+                if (!aTable[0].IsRapidaAnalogoNull()) r.RapidaAnalogo = aTable[0].RapidaAnalogo;
+                if (!aTable[0].IsLisproNull()) r.Lispro = aTable[0].Lispro;
+                if (!aTable[0].IsUltralentaNull()) r.Ultralenta = aTable[0].Ultralenta;
+                if (!aTable[0].IsMix25Null()) r.Mix25 = aTable[0].Mix25;
+                if (!aTable[0].IsMix30Null()) r.Mix30 = aTable[0].Mix30;
+                if (!aTable[0].IsOTROS_MEDICAMENTOSNull()) r.OTROS_MEDICAMENTOS = aTable[0].OTROS_MEDICAMENTOS;
+
+                return r;
+            }
+
+            return null;
+        }
+
+
+
+        public long Guardar_P_General(
+            long Protocolo, string Patologia, string ICD10_Det_Id, string Observaciones, int Especialidad_Id, long NHC,string MotivoModificacion, int MedicoId
+    )
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_AtConsultorio_Guardar_P_General(Protocolo,Patologia, ICD10_Det_Id, Observaciones, Especialidad_Id, NHC, MotivoModificacion, MedicoId);
+            return Convert.ToInt64(R);
+
+        }
+
+
+
+        public carga_general  Cargar_At_P_General(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_CargadePGeneralTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_CargadePGeneralTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_CargadePGeneralDataTable aTable = adapter.GetData(Protocolo);
+
+            if (aTable.Rows.Count > 0)
+            {
+                carga_general c = new carga_general();
+                if (!aTable[0].IsICD10_Det_IdNull()) c.diagnostico_cod = aTable[0].ICD10_Det_Id;
+                if (!aTable[0].IsFecha_AtencionNull()) c.fecha = aTable[0].Fecha_Atencion.ToShortDateString();
+                if (!aTable[0].IsMotivoModificacionNull()) c.modificacion = aTable[0].MotivoModificacion;
+                if (!aTable[0].IsNHCNull()) c.NHC = aTable[0].NHC;
+                if (!aTable[0].IsObservacionesNull()) c.observaciones = aTable[0].Observaciones;
+                if (!aTable[0].IsPatologiaNull()) c.patologia = aTable[0].Patologia;
+                c.medico = aTable[0].Medico;
+                c.especialidad  = aTable[0].Especialidad;
+
+                c.protocolo = aTable[0].ConsultaGid;
+                return c;
+            }
+
+            return null;
+
+        }
+
+
+        public List<servicios_hospitalario> CargarServicios()
+        {
+            AtConsultoioDALTableAdapters.H2_Servicio_Lista_ATableAdapter adapter = new AtConsultoioDALTableAdapters.H2_Servicio_Lista_ATableAdapter();
+
+            AtConsultoioDAL.H2_Servicio_Lista_ADataTable aTable = adapter.GetData(null,null);
+
+            List<servicios_hospitalario> Lista = new List<servicios_hospitalario>();
+
+            foreach (AtConsultoioDAL.H2_Servicio_Lista_ARow row in aTable.Rows)
+            {
+                servicios_hospitalario s = new servicios_hospitalario();
+                s.id = row.Id;
+                s.servicio = row.Descripcion;
+                Lista.Add(s);
+            }
+
+            return Lista;
+        }
+
+
+        public Int64 UltimaOrdenInternacion(long NHC)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+
+            if (NHC != 0)
+            {
+                object Nro = adapter.H2_AtConsultorio_UltimaOrdenInternacion(NHC);
+                return Convert.ToInt64(Nro);
+            }
+
+            return 0;
+        }
+
+
+
+        public orden_internacion CargarOrdenInternacion(long Protocolo)
+        {
+            AtConsultoioDALTableAdapters.H2_AtConsultorio_Cargar_OrdenInternacionTableAdapter adapter = new AtConsultoioDALTableAdapters.H2_AtConsultorio_Cargar_OrdenInternacionTableAdapter();
+
+            AtConsultoioDAL.H2_AtConsultorio_Cargar_OrdenInternacionDataTable aTable = adapter.GetData(Protocolo);
+
+            if (aTable.Rows.Count > 0)
+            {
+                orden_internacion o = new orden_internacion();
+                if (!aTable[0].IsCAMANull()) { o.cama = aTable[0].CAMA; }
+                if (!aTable[0].IsDIAGNOSTICONull()) { o.diagnostico = aTable[0].DIAGNOSTICO; }
+                o.fechainternacion = aTable[0].FECHA_INTERNACION.ToShortDateString();
+                o.id = aTable[0].ID_ORDEN_INT;
+                if (!aTable[0].IsINDICACIONESNull()) { o.indicaciones = aTable[0].INDICACIONES; }
+                if (!aTable[0].IsMEDICO_IDNull()) { o.medicoid = aTable[0].MEDICO_ID; }
+                o.ordenindicada = aTable[0].ID_AREA.ToString();
+                if (!aTable[0].IsPISONull()) { o.piso = aTable[0].PISO; }
+                o.servicioid = aTable[0].ID_SERV.ToString();
+                o.NHC = aTable[0].NHC;
+                
+                return o;
+            }
+
+            return null;
+        }
+
+
+
+
+        public long Guardar_Orden_Internacion(long NHC, int ID_SERV, string DIAGNOSTICO, int AREA, DateTime FECHA_INTERNACION, string PISO, string CAMA, string INDICACIONES, int MEDICOID)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_AtConsultorio_Guardar_OrdenInternacion(NHC, ID_SERV, DIAGNOSTICO, AREA, FECHA_INTERNACION, PISO, CAMA, INDICACIONES, MEDICOID);
+            return Convert.ToInt64(R);
+        }
+
+
+
+        public string Consultorio_del_Dia_MyE(int MedicoId, int EspecialidadId)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_AtConsultorio_Consultorio_MyE(MedicoId, EspecialidadId);
+            if (R != null)
+            {
+                return R.ToString();
+            }
+            else
+            {
+                return "*";
+            }
+        }
+
+
+        public void Llamar_Paciente_Turnera(int MedicoId, int EspecialidadId, long NHC)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            adapter.H2_AtConsultorio_Llamar_Paciente(MedicoId, EspecialidadId, NHC);
+
+            long Doc = Convert.ToInt64(NHC.ToString().Substring(2, 8));
+
+            usuarios U = (usuarios)HttpContext.Current.Session["Usuario"];
+            Estadisticas.Est_PacienteMovBLL E = new Estadisticas.Est_PacienteMovBLL();
+            E.EstPacMov(Doc, 5, (Int32)U.id, "Paciente Llamado MedicoId:" + MedicoId + " // EspecialidadId:" + EspecialidadId);
+        }
+
+        public string Medico_Paciente_Sin_Finalizar(int MedicoId, int Especialidad, DateTime Fecha)
+        {
+            AtConsultoioDALTableAdapters.QueriesTableAdapter adapter = new AtConsultoioDALTableAdapters.QueriesTableAdapter();
+            object R = adapter.H2_Medico_Tiene_Llamados_Sin_Finalizar(MedicoId, Especialidad, Fecha);
+            if (R != null)
+            {
+                return (Convert.ToDateTime(R)).ToString("dd/MM/yyyy HH:mm");
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+
+
+    }
+
+}

@@ -1,0 +1,171 @@
+﻿
+var Medico;
+var objConsultas = new Array();
+var Total = -1;
+var Editando = 0;
+var EditandoPos = -1;
+
+
+$(document).ready(function () {
+    $("#hastaaqui").fadeIn(1000);
+    $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top - 50 }, 500);
+    $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+
+    var GET = {};
+
+    document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
+        function decode(s) {
+            return decodeURIComponent(s.split("+").join(" "));
+        }
+        GET[decode(arguments[1])] = decode(arguments[2]);
+    });
+    CargarMedicos();
+});
+
+function CargarMedicos() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/Medicos_Por_Usuarios",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CargarMedicos_Cargados,
+        error: errores
+    });
+}
+
+function CargarMedicos_Cargados(Resultado) {
+
+    var Medicos = Resultado.d;
+    $('#cbo_Medico').empty();
+    $.each(Medicos, function (index, medico) {
+        $('#cbo_Medico').append(
+              $('<option></option>').val(medico.Id).html(medico.Medico)
+            );
+    });
+    List_Interconsultas();
+}
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+
+$("#btnConfirmar").click(function () {
+    var Interconsulta = {};
+    if (Editando != 0) {
+        if (objConsultas[EditandoPos].Estado != 3) {
+            Interconsulta.IdInterconsulta = objConsultas[EditandoPos].IdInterconsulta;
+            Interconsulta.Estado = 1; //Visto
+            Interconsulta.NHC = objConsultas[EditandoPos].NHC;
+            Interconsulta.MedicoSol = objConsultas[EditandoPos].MedicoSol;
+            Interconsulta.Fecha = objConsultas[EditandoPos].Fecha;
+            Interconsulta.MedicoInter = objConsultas[EditandoPos].MedicoInter;
+            Interconsulta.EspecialidadInter = objConsultas[EditandoPos].EspecialidadInter;
+            Interconsulta.NroInternacion = objConsultas[EditandoPos].NroInternacion;
+            Interconsulta.Observacion = $("#txt_Observacion").val();
+            var json = JSON.stringify({ "i": Interconsulta });
+            $.ajax({
+                type: "POST",
+                data: json,
+                url: "../Json/AtInternados/ListaPacientesInternados.asmx/Insert_PedidoInterconsulta",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: Interconsulta_Guardada,
+                error: errores
+            });
+        }
+        else alert("La interconsulta ya fue cerrada");
+    }
+});
+
+function Interconsulta_Guardada() {
+    alert("Interconsulta Guardada Correctamente");
+    LimpiarCampos();
+    List_Interconsultas();
+}
+
+
+$("#cbo_Medico").change(function () {
+    List_Interconsultas();
+    LimpiarCampos();
+});
+
+function List_Interconsultas() {
+    var json = JSON.stringify({ "NHC": 0, "Medico": $("#cbo_Medico :selected").val() });
+    $.ajax({
+        type: "POST",
+        data: json,
+        url: "../Json/AtInternados/ListaPacientesInternados.asmx/Interconsultas_by_NHC",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Interconsultas_Load,
+        error: errores
+    });
+}
+
+function List_Interconsultas_Load(Resultado) {
+    var Interconsultas = Resultado.d;
+    if (Interconsultas.length > 0) {
+        var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Med Solicitante</th><th>Esp. de Interconsulta</th><th>Fecha</th><th>Motivo</th></tr></thead><tbody>";
+        var Contenido = "";
+        var i = 0;
+        $.each(Interconsultas, function (index, Detalle) {
+            Contenido = Contenido + "<tr class='" + Detalle.RowClass + "'><td><a id='Editar" + i + "' onclick='Editar(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Interconsulta'><i class='icon-edit'></i></a></td><td> " + Detalle.MedicoSolDesc + " </td><td> " + Detalle.EspecialidadInterDesc + " </td><td> " + Detalle.Fecha + " </td><td> " + Detalle.Motivo + " </td></tr>";
+            objConsultas[i] = Detalle;
+            Total = Total + 1;
+            i = i + 1;
+        });
+
+        var Pie = "</tbody></table>";
+        $("#TablaInterconsultas").html(Encabezado + Contenido + Pie);
+    }
+    else $("#TablaInterconsultas").empty();
+}
+
+
+function Editar(Id) {
+    Editando = 1;
+    EditandoPos = Id;
+    $("#txt_Observacion").removeAttr("disabled");
+    $("#txt_Observacion").val(objConsultas[Id].Observacion);
+    if (objConsultas[Id].Estado == 3)
+        $("#btnImprimir").show();
+    else $("#btnImprimir").hide();
+}
+
+
+function LimpiarCampos() {
+    Editando = 0;
+    EditandoPos = -1;
+    $("#txt_Observacion").val('');
+    $("#txt_Observacion").attr("disabled", "disabled");
+    $("#btnImprimir").hide();
+}
+
+$("#btnCancelar").click(function () {
+    LimpiarCampos();
+});
+
+$("#btnImprimir").click(function () {
+    var Pagina = "../Impresiones/ImpresionInterconsulta.aspx?Id=" + objConsultas[EditandoPos].IdInterconsulta;
+    $.fancybox(
+		{
+		    'autoDimensions': false,
+		    'href': Pagina,
+		    'width': '100%',
+		    'height': '100%',
+		    'autoScale': false,
+		    'transitionIn': 'none',
+		    'transitionOut': 'none',
+		    'type': 'iframe',
+		    'hideOnOverlayClick': false,
+		    'enableEscapeButton': false
+		}
+	        );
+});
+
+                    

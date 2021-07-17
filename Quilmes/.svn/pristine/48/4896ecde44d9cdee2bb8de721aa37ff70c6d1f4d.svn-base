@@ -1,0 +1,59 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for ObraSocialBLL
+/// </summary>
+namespace Hospital
+{
+    public class ObraSocialBLL
+    {
+        public ObraSocialBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+
+        public List<obrasocial> ObraSocial(int? Id)
+        {
+            ObraSocialDALTableAdapters.H2_ObraSocial_Buscar_IdTableAdapter adapter = new ObraSocialDALTableAdapters.H2_ObraSocial_Buscar_IdTableAdapter();
+            ObraSocialDAL.H2_ObraSocial_Buscar_IdDataTable aTable = adapter.GetData(Id);
+
+            List<obrasocial> Lista = new List<obrasocial>();
+
+            foreach (ObraSocialDAL.H2_ObraSocial_Buscar_IdRow row in aTable.Rows)
+            {
+                obrasocial o = new obrasocial();
+                o.id = row.Id;
+                o.OS = row.Descripcion;
+                Lista.Add(o);
+            }
+            return Lista;
+        }
+
+        public List<obrasocial> List_ObraSociales(bool Todas)
+        {
+            List<obrasocial> lista = new List<obrasocial>();
+            FacturacionDALTableAdapters.H2_Facturacion_ObraSocial_ListTableAdapter adapter = new FacturacionDALTableAdapters.H2_Facturacion_ObraSocial_ListTableAdapter();
+            FacturacionDAL.H2_Facturacion_ObraSocial_ListDataTable aTable = adapter.GetData(Todas);
+            foreach (FacturacionDAL.H2_Facturacion_ObraSocial_ListRow row in aTable.Rows)
+            {
+                lista.Add(CreateRowFromObraSocial(row));
+            }
+            return lista;
+        }
+
+        private obrasocial CreateRowFromObraSocial(FacturacionDAL.H2_Facturacion_ObraSocial_ListRow row)
+        {
+            obrasocial o = new obrasocial();
+            o.id = row.Id;
+            o.OS = row.Descripcion;
+            return o;
+        }
+
+    }
+}

@@ -1,0 +1,114 @@
+﻿$(document).ready(function () {
+    $("#frm_Main").validate({
+        rules: {
+            'desde': { dateES: true },
+            'hasta': { dateES: true }
+        },
+        messages: {
+            'desde': { dateES: '' },
+            'hasta': { dateES: '' }
+        },
+        invalidHandler: function (e, validator) {
+            var list = validator.invalidElements();
+            //RemoveClass();
+            for (var i = 0; i < list.length; i++) {
+                var name_element = $(list[i]).attr("name");
+                $("#control" + name_element).addClass("error");
+            }
+        }
+
+    });
+    LoadMedicosGuardiabyEsp(0);
+    $("#desde").datepicker();
+    $("#hasta").datepicker();
+    $("#desde").mask("99/99/9999", { placeholder: "-" });
+    $("#hasta").mask("99/99/9999", { placeholder: "-" });
+    $("#desde").val(FechaActual_2(-1));
+    $("#hasta").val(FechaActual());
+});
+
+    function LoadMedicosGuardiabyEsp(Especialidad) {
+    var json = JSON.stringify({ "Especialidad": Especialidad });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/MedicosGuardiabyEsp",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: LoadMedicosGuardiabyEsp_Cargados,
+        error: errores
+    });
+}
+
+function LoadMedicosGuardiabyEsp_Cargados(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Medico) {
+        $("#cbo_Medicos").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+    });
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+$("#btnActualizar").click(function () {
+    if ($("#frm_Main").valid()) {
+        var json = JSON.stringify({ "FDesde": $("#desde").val(), "FHasta": $("#hasta").val(), "MedicoId": $("#cbo_Medicos :selected").val(), "NHC": $("#txtNHC").val() });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Guardia/Guardia.asmx/List_Historial_Guardia",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: List_Historial_Guardia_Cargados,
+            error: errores
+        });
+    }
+});
+
+
+
+function List_Historial_Guardia_Cargados(Resultado) {
+    var Detalles = Resultado.d;
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Historial</th><th>Fecha</th><th>NHC</th><th>Médico</th></tr></thead><tbody>";
+    var Contenido = "";
+    var i = 0;
+    $.each(Detalles, function (index, Detalle) {
+        Contenido = Contenido + "<tr onclick=LoadGuardia(" + Detalle.protocolo + ")><td></td><td> " + Detalle.texto + " </td><td> " + Detalle.fecha + " </td><td> " + Detalle.nhc + " </td><td> " + Detalle.medico + " </td></tr>";
+        i = i + 1;
+    });
+    var Pie = "</tbody></table>";
+    $("#TablaPedidos_div").html(Encabezado + Contenido + Pie);
+}
+
+function LoadGuardia(Id) {
+    if (Id > 0) {
+        document.location = "CargarAtencion.aspx?Id=" + Id;
+    }
+}
+
+$("#btnImprimir").click(function () {
+    if ($("#frm_Main").valid()) {
+        $.fancybox(
+        {
+            'autoDimensions': false,
+            'href': '../Impresiones/ImpresionGuardiaHistorial.aspx?Desde=' + $("#desde").val() + "&Hasta=" + $("#hasta").val() + "&Medico=" + $("#cbo_Medicos :selected").val() + "&NHC=" + $("#txtNHC").val(),
+            'width': '75%',
+            'height': '75%',
+            'autoScale': false,
+            'transitionIn': 'none',
+            'transitionOut': 'none',
+            'type': 'iframe',
+            'hideOnOverlayClick': false,
+            'enableEscapeButton': false
+        });
+    }
+});
+
+$("#desde").change(function () {
+    $("#desde").removeClass("error");
+});
+
+$("#hasta").change(function () {
+    $("#hasta").removeClass("error");
+});

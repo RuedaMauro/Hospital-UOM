@@ -1,0 +1,61 @@
+﻿$(document).ready(function () {
+    $("#txtFechaInicio").mask("99/99/9999", { placeholder: "-" });
+    $("#txtFechaFin").mask("99/99/9999", { placeholder: "-" });
+    $("#txtNHC").mask("9999999999?9", { placeholder: "-" });
+
+    $("#txtFechaInicio").datepicker();
+    $("#txtFechaFin").datepicker();
+    
+});
+
+$("#btnBuscar").click(function () {
+    BuscarOrdesnesdeEstudios();
+});
+
+
+function BuscarOrdesnesdeEstudios() {
+
+ var json = JSON.stringify({
+        "nhc": $("#txtNHC").val(),
+        "Afiliado": $("#txtAfiliado").val(),
+        "fechainicio": $("#txtFechaInicio").val(),
+        "fechafinal": $("#txtFechaFin").val()
+    });
+
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/BuscarOrdesnesdeEstudios",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: BuscarOrdesnesdeEstudios_Cargado,
+        error: errores
+    });
+}
+
+function BuscarOrdesnesdeEstudios_Cargado(Resultado) {
+    var Busquedas = Resultado.d;
+    var PError = false;
+    var Datos = "";
+    $.each(Busquedas, function (index, busqueda) {
+
+        Datos = Datos + "<tr ";
+        Datos = Datos + " onclick='javascript:Cargar_Paciente_NHC(" + busqueda.NHC + "," + busqueda.protocolo + "," + busqueda.medicoid + ");' >";
+        Datos = Datos + "<td>" + busqueda.protocolo + "</td>";
+        Datos = Datos + "<td>" + busqueda.fechaingreso + "</td>";
+        Datos = Datos + "<td>" + busqueda.documento + "</td>";
+        Datos = Datos + "<td>" + busqueda.paciente + "</td></tr>";
+    });
+
+    $('#TablaResultado').html(Datos);
+}
+
+function Cargar_Paciente_NHC(NHC, Protocolo, MedicoId) {
+    self.location = "CargadeEstudios.aspx?MedicoId="+MedicoId + "&NHC="+NHC + "&Protocolo="+Protocolo;
+}
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}

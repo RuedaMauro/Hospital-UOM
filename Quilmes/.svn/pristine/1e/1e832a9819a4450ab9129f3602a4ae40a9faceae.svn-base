@@ -1,0 +1,104 @@
+﻿
+
+$(document).ready(function () {
+    List_Rubros();
+    
+
+});
+
+
+function List_Rubros() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Farmacia/Farmacia.asmx/List_Medicamentos_Rubro",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Rubros_Cargado,
+        error: errores
+    });
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+function List_Rubros_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Rubro) {
+        $("#cbo_Rubros").append($("<option></option>").val(Rubro.Id).html(Rubro.Rubro));
+    });
+
+}
+
+$("#btnBuscar").click(function () {
+    var Rubro = $("#cbo_Rubros :selected").val();
+    var Medicamento = $("#medicamento").val();
+    List_ControlStock(Medicamento, Rubro);
+
+});
+
+$("#medicamento").blur(function () {
+    List_ControlStock($("#medicamento").val(), 0);
+});
+
+$("#medicamento").keypress(function (event) {
+    if (event.which == 13) {
+        if ($('#medicamento').attr('readonly') == undefined) {
+            List_ControlStock($("#medicamento").val(), 0);
+        }
+
+    }
+});
+
+    function List_ControlStock(Nombre, Rubro) {
+    var Todos = false;
+    if ($("#chk_Todos").is(":checked")) Todos = true;
+    var json = JSON.stringify({"Nombre": Nombre, "Rubro": parseInt(Rubro), "Todos": Todos });
+    $.ajax({
+        type: "POST",
+        data: json,
+        url: "../Json/Farmacia/Farmacia.asmx/List_ControlStock",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_ControlStock_Cargado,
+        error: errores
+    });
+}
+
+function List_ControlStock_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th>Medicamento</th><th>Gramaje</th><th>Medida</th><th>Presentación</th><th>Rubro</th><th>Depósito</th><th>Stock</th><th>Mínimo</th></tr></thead><tbody>"; 
+    var Contenido = "";
+    $.each(Lista, function (index, Medicamento) {
+        Contenido = Contenido + "<tr><td>" + Medicamento.Medicamento + " </td><td> " + Medicamento.Gramaje + " </td><td>" + Medicamento.Medida + " </td><td> " + Medicamento.Presentacion + " </td><td> " + Medicamento.Rubro + " </td><td> " + Medicamento.Deposito + " </td><td> " + Medicamento.Stock + " </td><td>" + " </td><td> " + Medicamento.StockMin + " </td></tr>";
+    });
+    var Pie = "</tbody></table>";
+    $("#TablaMedicamentos_div").html(Encabezado + Contenido + Pie);
+}
+
+
+function Ventana(url) {
+
+    $.fancybox(
+        {
+            'autoDimensions': false,
+            'href': url,
+            'width': '75%',
+            'height': '75%',
+            'autoScale': false,
+            'transitionIn': 'none',
+            'transitionOut': 'none',
+            'type': 'iframe',
+            'hideOnOverlayClick': false,
+            'enableEscapeButton': false,
+        });
+}
+
+$("#btnImprimir").click(function () {
+    var Todos = false;
+    if ($("#chk_Todos").is(":checked")) Todos = true;
+    var Rubro = $("#cbo_Rubros :selected").val();
+    var Medicamento = $("#medicamento").val();
+    var url = '../Impresiones/ControlStock.aspx?Nombre=' + Medicamento + "&Rubro="+ Rubro+"&Todos="+Todos;
+    Ventana(url);
+});

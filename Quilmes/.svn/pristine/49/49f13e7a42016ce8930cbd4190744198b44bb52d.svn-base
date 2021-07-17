@@ -1,0 +1,603 @@
+﻿function Cargar_Paciente_NHC(NHC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Cargado,
+        error: errores
+    });
+}
+
+function Cargar_Paciente_DOC(DOC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Cargar_Paciente_Documento",
+        data: '{Documento: "' + DOC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Cargado,
+        error: errores
+    });
+}
+
+var objPracticas = new Array();
+var i = 0;
+var Practicas = new Array();
+var Total = -1;
+var Editando = 0;
+var EditandoPos = 0;
+var Actual = "";
+var MedicoId = 0;
+var NHC = 0;
+var Protocolo = 0;
+var Ultimo = 0;
+var U = 0;
+
+function Cargar_Paciente_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+
+    $.each(Paciente, function (index, paciente) {
+
+        if (paciente.NHC != null && paciente.NHC != '') {
+            $("#desdeaqui").show();
+            TieneUltimo(paciente.NHC);
+        }
+
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+        $("#txt_dni").attr('value', paciente.documento);
+        NHC = paciente.NHC;
+        $("#txtNHC").attr('value', paciente.NHC);
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+
+        $("#CargadoLocalidad").html(paciente.localidad.substring(0, 15));
+
+
+        if (paciente.Nro_Seccional != "999") {
+            $("#CargadoSeccional").html(paciente.Seccional);
+        }
+        else {
+            $("#CargadoSeccional").html("Sin Seccionalizar");
+        }
+        
+		$('#fotopaciente').error(function () {
+            $(this).attr('src', '../img/silueta.jpg');
+        });
+		
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+    });
+}
+
+function TieneUltimo(NHC)
+{
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/UltimaReceta",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            if (Resultado.d != 0 && Resultado.d != null) {
+                Ultimo = Resultado.d;
+                if (U != 1) {
+                    $("#CargarUltimo2").show();
+                    $("#CargarUltimo1").show();
+                }
+            }
+        },
+        error: errores
+    });
+}
+
+
+$(document).ready(function () {
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    var GET = {};
+
+    document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
+        function decode(s) {
+            return decodeURIComponent(s.split("+").join(" "));
+        }
+
+        GET[decode(arguments[1])] = decode(arguments[2]);
+    });
+
+
+    if (GET["Protocolo"] != "" && GET["Protocolo"] != null) {
+        $("#divmotivo").show();
+        if (GET["U"] != "" && GET["U"] != null) {
+            U = GET["U"];
+            Protocolo = GET["Protocolo"];            
+            CargarRecetas();
+        }
+        else {
+            Protocolo = GET["Protocolo"];
+            $("#btnImprimir").show();
+            $("#NROProtocolo").html(Protocolo);
+            $("#NROProtocolo").removeClass("red");
+            CargarRecetas();
+        }
+
+    }
+    else {
+
+        if (GET["NHC"] != "" && GET["NHC"] != null) {
+            NHC = GET["NHC"];
+            Cargar_Paciente_NHC(NHC);
+            CargarPatologia('');
+            CargarDiagnostico('');
+            Cargar_Autorizantes(0, '');
+        }
+
+        if (GET["MedicoId"] != "" && GET["MedicoId"] != null) {
+            MedicoId = GET["MedicoId"];
+            MedicoDetalle(MedicoId);
+        }
+    }
+
+    $("#txtFechaAtencion").datepicker();
+    $("#txtFecha").datepicker();
+    $("#txt_FechaRecp").datepicker();
+
+
+    ListaMonoDrogras();
+    Lista_Medidas();
+    Lista_Presentacion();
+    $("#txtFechaEntrega").datepicker();
+    $("#txtFechaInicio").datepicker();
+});
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+function CargarPatologia(Patologia) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/Patologia.asmx/Patologia_Lista",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var PATOLOGIA = Resultado.d;
+            $('#cbo_patologia').empty();
+            $('#cbo_patologia').append('<option value="0"></option>');
+            $.each(PATOLOGIA, function (index, pat) {
+                $('#cbo_patologia').append(
+
+              $('<option></option>').val(pat.id).html(pat.patologias)
+            );
+            });
+            if (Patologia != '' && Patologia != null) {
+                $("#cbo_patologia option[value=" + Patologia + "]").attr("selected", true);
+            }
+        },
+        error: errores
+    });
+}
+
+function CargarDiagnostico(diagnosticoicd10) {
+    $.ajax({
+        type: "POST",
+        data: '{Codigo: ""}',
+        url: "../Json/Internaciones/IntSSC.asmx/CargarDiagnosticoICD10",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var ICD10 = Resultado.d;
+            $('#cbo_diagnostico').empty();
+            $.each(ICD10, function (index, icd) {
+                $('#cbo_diagnostico').append(
+              $('<option></option>').val(icd.Codigo).html(icd.Descripcion)
+            );
+            });
+            if (diagnosticoicd10 != '' && diagnosticoicd10 != null) {
+                $("#cbo_diagnostico option[value=" + diagnosticoicd10 + "]").attr("selected", true);
+            }
+        },
+        error: errores
+    });
+}
+
+function Cargar_Autorizantes(Id, Cual) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Autorizantes",
+        data: '{Id: "' + Id + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Autorizantes = Resultado.d;
+            $('#cboAutorizante').empty();
+            $('#cboAutorizante').append('<option value="0"></option>');
+            $.each(Autorizantes, function (index, autori) {
+                $('#cboAutorizante').append(
+              $('<option></option>').val(autori.id).html(autori.autorizante)
+            );
+            });
+
+            if (Cual != '' && Cual != null) {
+                $("#cboAutorizante option[value=" + Cual + "]").attr("selected", true);
+            }
+
+        },
+        error: errores
+    });
+}
+
+function ListaMonoDrogras() {
+    var Id = 0;
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/MonoDrogas",
+        data: '{Numero: "' + Id + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var MonoDrogas = Resultado.d;
+            $('#cbo_MonoDrogas').empty();
+            $('#cbo_MonoDrogas').append('<option value="0"></option>');
+            $.each(MonoDrogas, function (index, mono) {
+                $('#cbo_MonoDrogas').append(
+              $('<option></option>').val(mono.numero).html(mono.nombre)
+            );
+            });
+        },
+        error: errores
+    });
+}
+
+function Lista_Medidas() {
+    var Id = 0;
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/Lista_Medidas",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Medidas = Resultado.d;
+            $('#cbo_medidas').empty();
+            $('#cbo_medidas').append('<option value="0"></option>');
+            $.each(Medidas, function (index, medidas) {
+                $('#cbo_medidas').append(
+              $('<option></option>').val(medidas.id).html(medidas.medida)
+            );
+            });
+        },
+        error: errores
+    });
+}
+
+function Lista_Presentacion() {
+    var Id = 0;
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/Lista_Presentacion",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Presentaciones = Resultado.d;
+            $('#cbo_presentacion').empty();
+            $('#cbo_presentacion').append('<option value="0"></option>');
+            $.each(Presentaciones, function (index, pres) {
+                $('#cbo_presentacion').append(
+              $('<option></option>').val(pres.id).html(pres.presentacion)
+            );
+            });
+        },
+        error: errores
+    });
+}
+
+function MedicoDetalle(Id) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Medicos.asmx/MedicoBuscar_Nombre",
+        data: '{Id: "' + Id + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            $("#Medico").html(Resultado.d.Medico);
+        }
+        ,
+        error: errores
+    });
+}
+
+$("#txtNHC").change(function () {
+    Cargar_Paciente_NHC($("#txtNHC").val());
+});
+
+$("#txt_dni").change(function () {
+    Cargar_Paciente_DOC($("#txt_dni").val());
+});
+
+$("#btnAceptar").click(function () {
+
+    Codigo = $('#cbo_MonoDrogas option:selected').val();
+
+    if (!Existe(Codigo)) {
+     
+            Estado = 1;
+            var Cual = Total;
+            if (Editando == 1) {
+                Cual = EditandoPos;
+            }
+            else {
+                Total = Total + 1;
+                Cual = Total;
+            }
+
+            var objPractica = {};
+            objPractica.monodrogascodigo = $('#cbo_MonoDrogas option:selected').val();
+            objPractica.monodrogasnombre = $("#cbo_MonoDrogas :selected").text();
+            objPractica.adicional = $("#txt_Adicional").val();
+            objPractica.dosis = $("#txt_Dosis").val();
+            objPractica.dosis_diaria = $("#txt_Dosis_diaria").val();
+            objPractica.observacion = $("#txt_Observaciones").val();
+            objPractica.unidad_medida_id = $('#cbo_medidas option:selected').val();
+            objPractica.unidad_medida = $("#cbo_medidas :selected").text();
+            objPractica.presentacion_id = $('#cbo_presentacion option:selected').val();
+            objPractica.presentacion = $("#cbo_presentacion :selected").text();
+            objPractica.Estado = Estado;           
+                                  
+
+            objPracticas[Cual] = objPractica;
+
+            RenderizarTabla();
+            Editando = 0;
+            EditandoPos = -1;
+
+            LimpiarCamposCarga();
+        }
+    });
+
+
+    $("#btnCancelar").click(function () {
+        Editando = 0;
+        EditandoPos = -1;
+        LimpiarCamposCarga();
+    });
+
+function LimpiarCamposCarga() {
+    $("#txt_Adicional").val('');
+    $("#txt_Dosis").val('');
+    $("#txt_Dosis_diaria").val('');
+    $("#txt_Observaciones").val('');
+    $("#cbo_MonoDrogas option[value=0]").attr("selected", true);
+    $("#cbo_presentacion option[value=0]").attr("selected", true);
+    $("#cbo_medidas option[value=0]").attr("selected", true);
+    $("#cbo_MonoDrogas").removeAttr('disabled');
+}
+
+    function Existe(Algo) {
+        for (var i = 0; i <= Total; i++) {
+            if (objPracticas[i].monodrogascodigo == Algo && objPracticas[i].Estado == 1 && Editando != 1) {
+                alert("Ya ha cargado la Monodroga : " + objPracticas[i].monodrogasnombre);
+                LimpiarCamposCarga();
+                return true;
+            }
+        }
+        return false;
+    }
+
+function RenderizarTabla() {
+    var Contenido = "";
+    for (var i = 0; i <= Total; i++) {
+        if (objPracticas[i].Estado == 1) {
+            Contenido = Contenido + "<tr onclick='Editar(" + i + ");'><td>" + objPracticas[i].monodrogasnombre + " </td><td>" + objPracticas[i].adicional + " </td><td> " + objPracticas[i].dosis_diaria + " </td><td> " + objPracticas[i].dosis + " </td><td> " + objPracticas[i].unidad_medida + " </td><td> " + objPracticas[i].presentacion + " </td></tr>";
+        }
+    }
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    $("#TablaResultado").html(Contenido);
+
+}
+
+
+function Editar(Nro) {
+    Editando = 1;
+    EditandoPos = Nro;
+    $("#btnQuitar").show();
+    $("#cbo_MonoDrogas option[value=" + objPracticas[Nro].monodrogascodigo + "]").attr("selected", true);
+    $("#txt_Adicional").val(objPracticas[Nro].adicional);
+    $("#txt_Dosis").val(objPracticas[Nro].dosis);
+    $("#txt_Dosis_diaria").val(objPracticas[Nro].dosis_diaria);
+    $("#txt_Observaciones").val(objPracticas[Nro].observacion);
+    $("#cbo_medidas option[value=" + objPracticas[Nro].unidad_medida_id + "]").attr("selected", true);
+    $("#cbo_presentacion option[value=" + objPracticas[Nro].presentacion_id + "]").attr("selected", true);
+    $("#cbo_MonoDrogas").attr('disabled', 'disabled');
+}
+
+$("#btnQuitar").click(function () {
+    $("#btnQuitar").hide();
+    Editando = 0;
+    objPracticas[EditandoPos].Estado = 0;
+    RenderizarTabla();
+    LimpiarCamposCarga();
+});
+
+
+
+$("#btnGuardar").click(function () {
+
+	vacio = true;
+    i = 0;
+    if (objPracticas == undefined) { alert("No se puede guardar una receta vacia"); return false; }
+    else {
+        for (i = 0; i < objPracticas.length; i++) {
+            if (objPracticas[i].Estado == 1) {
+                vacio = false;
+            }
+        }
+    }
+
+    if (vacio) { alert("No se puede guardar una receta vacia"); return false; }
+	
+    if (MedicoId == "0") { alert("Error con el médico seleccionado"); return false; }
+
+	if ($("#txtFechaInicio").val().lenght < 8) { alert("Debe ingresar fecha de inicio"); return false; }
+    if ($("#txtFechaInicio").val() == "") { alert("Falta la fecha de inicio"); return false; }
+    if ($("#txtFechaEntrega").val().lenght < 8) { alert("Debe ingresar fecha de inicio"); return false; }
+    if ($("#txtFechaEntrega").val() == "") { alert("Falta la fecha de entrega"); return false; }
+
+    var json = JSON.stringify({
+        "objMonoDrogas": objPracticas,
+        "Protocolo": Protocolo,
+        "FechaEntrega": $("#txtFechaEntrega").val(),
+        "MedicoId": MedicoId,
+        "ParologiaId": $('#cbo_patologia option:selected').val(),
+        "NHC": NHC,
+        "FechaInicio": $("#txtFechaInicio").val(),
+        "DiagnosticoID": $('#cbo_diagnostico option:selected').val(),
+        "AutoizadoId": $('#cboAutorizante option:selected').val(),
+        "PeriodoSolicitado": $("#txtPeriodo").val()        
+    });
+
+    
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/Guardar_Recetas",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: RecetasGuardados,
+        error: errores
+    });
+
+
+});
+
+function RecetasGuardados(Resultado) {
+    Protocolo = Resultado.d;
+    $("#btnImprimir").show();
+	alert("Se ha guardado correctamente el formulario de medicación.");
+}
+
+function CargarRecetas() {
+    $.ajax({
+        type: "POST",
+        data: '{Protocolo: "' + Protocolo + '"}',
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/CargarRecetaCAB",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Recetas = Resultado.d;
+            $.each(Recetas, function (index, Receta) {              
+            NHC = Receta.NHC;
+            Cargar_Paciente_NHC(NHC);
+            MedicoId = Receta.medicoid;
+            MedicoDetalle(MedicoId);
+            Protocolo = Receta.protocolo;
+            $("#txtFechaEntrega").val(Receta.fechaentrega);            
+            CargarPatologia(Receta.patologia);
+            $("#txtFechaInicio").val(Receta.fechainicio);
+            CargarDiagnostico(Receta.diagnoticoid);
+            Cargar_Autorizantes(0,Receta.autorizanteid);
+            $("#txtPeriodo").val(Receta.periodo);  
+
+            });
+
+            
+            CargarDetalles();
+        },
+        error: errores
+    });
+}
+
+
+function CargarDetalles() {
+    $.ajax({
+        type: "POST",
+        data: '{Protocolo: "' + Protocolo + '"}',
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/CargarRecetaDET",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Detalles = Resultado.d;
+
+            $.each(Detalles, function (index, detalle) {
+                Estado = 1;
+                var Cual = Total;
+                if (Editando == 1) {
+                    Cual = EditandoPos;
+                }
+                else {
+                    Total = Total + 1;
+                    Cual = Total;
+                }
+
+                var objPractica = {};
+                objPractica.monodrogascodigo = detalle.monodrogascodigo;
+                objPractica.monodrogasnombre = detalle.monodrogasnombre;
+                objPractica.adicional = detalle.adicional;
+                objPractica.dosis = detalle.dosis;
+                objPractica.dosis_diaria = detalle.dosis_diaria;
+                objPractica.observacion = detalle.observacion;
+                objPractica.unidad_medida_id = detalle.unidad_medida_id;
+                objPractica.unidad_medida = detalle.unidad_medida;
+                objPractica.presentacion_id = detalle.presentacion_id;
+                objPractica.presentacion = detalle.presentacion;
+                objPractica.Estado = Estado;
+                objPracticas[Cual] = objPractica;
+
+            });
+
+            RenderizarTabla();
+            Editando = 0;
+            EditandoPos = -1;
+            if (U == 1) {                
+                Protocolo = 0;
+                $("#btnImprimir").hide();
+                $("#NROProtocolo").html("Provisorio");
+                $("#NROProtocolo").addClass("red");
+            }
+
+        },
+        error: errores
+    });
+}
+
+function ImprimirRecetario() {
+    self.location = "../Impresiones/Recetario.aspx?Protocolo=" + Protocolo
+}
+
+function ImprimirRecetario70100() {
+    self.location = "../Impresiones/Autorizacion70100.aspx?Protocolo=" + Protocolo
+}
+
+$("#CargarUltimo2, #CargarUltimo1").click(function () {
+    //alert(Ultimo);
+    self.location = "Receta.aspx?Protocolo=" + Ultimo + "&U=1";
+});
+
+
+
+

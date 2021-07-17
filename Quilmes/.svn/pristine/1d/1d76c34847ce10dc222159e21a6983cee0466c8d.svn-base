@@ -1,0 +1,262 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for IndicacionMedicaBLL
+/// </summary>
+namespace Hospital
+{
+    public class IndicacionMedicaBLL
+    {
+        public IndicacionMedicaBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        public int Insert_IM_Cab(IM_Cab I)
+        {
+            IMTableAdapters.QueriesTableAdapter adapter = new IMTableAdapters.QueriesTableAdapter();
+            object Id= adapter.H2_IndicacionMedica_Save(Convert.ToInt64(I.NHC), int.Parse(I.IdServicio), int.Parse(I.IdCama), int.Parse(I.IdMedico), int.Parse(I.IdSala), int.Parse(I.IdInternacion));
+            if (Id != null)
+            {
+                return int.Parse(Id.ToString());
+            }
+            else return -1;
+        }
+
+        public int Insert_IM_Det(IM_Det I)
+        {
+            IMTableAdapters.QueriesTableAdapter adapter = new IMTableAdapters.QueriesTableAdapter();
+            if (string.IsNullOrEmpty(I.Horas)) I.Horas = "0";
+            if (string.IsNullOrEmpty(I.Via_Id)) I.Via_Id = "0";
+            object Id = adapter.H2_IndicacionMedica_Detalle_Save(int.Parse(I.IM_Id), Convert.ToInt64(I.Insumo_Id), null, int.Parse(I.Via_Id), int.Parse(I.Cantidad), I.Indicacion, I.Observaciones, null, I.Ocultar, int.Parse(I.Horas), I.EnHoras, I.Vademe, false, 1, null, I.Presentacion, I.Medida);
+            if (Id != null)
+            {
+                return int.Parse(Id.ToString());
+            }
+            else return -1;
+        }
+
+        public List<IM_Buscar> BuscarIM(string NHC, string Id, string Apellido, string Desde, string Hasta, string objBusquedaLista, string MedicoId)
+        {
+            int Pedido_Id, Medico;
+            DateTime f_Desde, f_Hasta;
+
+            if (string.IsNullOrEmpty(Id)) Pedido_Id = 0;
+            else Pedido_Id = int.Parse(Id);
+
+            if (string.IsNullOrEmpty(MedicoId)) Medico = 0;
+            else Medico = int.Parse(MedicoId);
+
+            if (string.IsNullOrEmpty(Desde)) f_Desde = DateTime.MinValue.Date;
+            else f_Desde = DateTime.Parse(Desde).Date;
+
+            if (string.IsNullOrEmpty(Hasta)) f_Hasta = DateTime.MinValue.Date;
+            else f_Hasta = DateTime.Parse(Hasta).Date;
+
+            IMTableAdapters.H2_BUSCAR_IMTableAdapter adapter = new IMTableAdapters.H2_BUSCAR_IMTableAdapter();
+            IM.H2_BUSCAR_IMDataTable aTable = adapter.GetData(NHC, Pedido_Id, Apellido, f_Desde, f_Hasta, objBusquedaLista, Medico);
+            List<IM_Buscar> lista = new List<IM_Buscar>();
+            foreach (IM.H2_BUSCAR_IMRow row in aTable.Rows)
+            {
+                lista.Add(CreateFromRow_BuscarIM(row));
+            }
+            return lista;
+        }
+
+        public List<IM_Buscar> Buscar_IM_ENT(string NHC, string Id, string Desde, string Hasta, string ServicioId)
+        {
+            int Pedido_Id, Serv;
+            DateTime f_Desde, f_Hasta;
+
+            if (string.IsNullOrEmpty(Id)) Pedido_Id = 0;
+            else Pedido_Id = int.Parse(Id);
+
+            if (string.IsNullOrEmpty(ServicioId)) Serv = 0;
+            else Serv = int.Parse(ServicioId);
+
+            if (string.IsNullOrEmpty(Desde)) f_Desde = DateTime.MinValue.Date;
+            else f_Desde = DateTime.Parse(Desde).Date;
+
+            if (string.IsNullOrEmpty(Hasta)) f_Hasta = DateTime.MinValue.Date;
+            else f_Hasta = DateTime.Parse(Hasta).Date;
+
+            IMTableAdapters.H2_BUSCAR_IM_ENTTableAdapter adapter = new IMTableAdapters.H2_BUSCAR_IM_ENTTableAdapter();
+            IM.H2_BUSCAR_IM_ENTDataTable aTable = adapter.GetData(NHC, Pedido_Id, f_Desde, f_Hasta, Serv);
+            List<IM_Buscar> lista = new List<IM_Buscar>();
+            foreach (IM.H2_BUSCAR_IM_ENTRow row in aTable.Rows)
+            {
+                lista.Add(CreateFromRow_BuscarIM_ENT(row));
+            }
+            return lista;
+        }
+
+        public List<IM_Det> BuscarIM_Det(string Id)
+        {
+            IMTableAdapters.H2_IM_DET_BYIDTableAdapter adapter = new IMTableAdapters.H2_IM_DET_BYIDTableAdapter();
+            IM.H2_IM_DET_BYIDDataTable aTable = adapter.GetData(int.Parse(Id));
+            List<IM_Det> lista = new List<IM_Det>();
+            foreach (IM.H2_IM_DET_BYIDRow row in aTable.Rows)
+            {
+                lista.Add(CreateFromRow_BuscarIM_Det(row));
+            }
+            return lista;
+        }
+
+        public List<IM_Ent_Det> BuscarIM_ENT_Det(string Id)
+        {
+            IMTableAdapters.H2_IM_ENT_DETTableAdapter adapter = new IMTableAdapters.H2_IM_ENT_DETTableAdapter();
+            IM.H2_IM_ENT_DETDataTable aTable = adapter.GetData(int.Parse(Id));
+            List<IM_Ent_Det> lista = new List<IM_Ent_Det>();
+            foreach (IM.H2_IM_ENT_DETRow row in aTable.Rows)
+            {
+                lista.Add(CreateFromRow_BuscarIM_ENT_Det(row));
+            }
+            return lista;
+        }
+
+        private IM_Ent_Det CreateFromRow_BuscarIM_ENT_Det(IM.H2_IM_ENT_DETRow row)
+        {
+            IM_Ent_Det i = new IM_Ent_Det();
+            if (row.IdInsumo > 0)
+            {
+                if (!row.Iscantidad_ENull()) i.CantEnt = row.cantidad_E.ToString();
+                else i.UnidadEnt = "0";
+                if (!row.IsCantidadNull()) i.Cantidad = row.Cantidad.ToString();
+                if (!row.IsFrecuenciaNull()) i.Horas = row.Frecuencia.ToString();
+                if (!row.IsIdIndicacionMedicaNull()) i.IM_Id = row.IdIndicacionMedica.ToString();
+                if (!row.IsIdInsumoNull()) i.Insumo_Id = row.IdInsumo.ToString();
+                if (!row.IsIndicacionNull()) i.Indicacion = row.Indicacion;
+                if (!row.IsObservacionNull()) i.Observacion = row.Observacion;
+                if (!row.IsPresentacionNull()) i.Presentacion = row.Presentacion;
+                if (!row.IsREM_GRAMAJENull()) i.Gramaje = row.REM_GRAMAJE;
+                if (!row.IsREM_NOMBRENull()) i.Nombre = row.REM_NOMBRE;
+                if (!row.IsSTO_CANTIDADNull()) i.Cantidad = row.Cantidad.ToString();
+                if (!row.IsUnidadNull()) i.Medida = row.Unidad;
+                i.Stock = row.STO_CANTIDAD.ToString();
+                if (!row.IsentregaNull()) i.UnidadEnt = row.entrega.ToString();
+                if (i.Horas != "0" && i.Gramaje != "")
+                {
+                    double CanH = (24.00 / double.Parse(i.Horas));
+                    i.Total = (CanH * double.Parse(i.Cantidad)).ToString();
+                    i.CantEnt = (double.Parse(i.UnidadEnt) * double.Parse(i.Gramaje)).ToString();
+                }
+                else
+                {
+                    i.Total = i.Cantidad;
+                    i.CantEnt = i.UnidadEnt;
+                  
+                }
+                i.Saldo = (int.Parse(i.Cantidad) - int.Parse(i.UnidadEnt)).ToString();
+            }
+            else {
+                i.UnidadEnt = "";
+                i.Cantidad = "";
+                i.Horas = "";
+                if (!row.IsIdIndicacionMedicaNull()) i.IM_Id = row.IdIndicacionMedica.ToString();
+                if (!row.IsIdInsumoNull()) i.Insumo_Id = row.IdInsumo.ToString();
+                if (!row.IsIndicacionNull()) i.Indicacion = row.Indicacion;
+                if (!row.IsObservacionNull()) i.Observacion = row.Observacion;
+                i.Presentacion = "";
+                i.Gramaje = "";
+                i.Nombre = "";
+                i.Cantidad = "";
+                i.Medida = "";
+                i.Stock = "";
+                i.Total = "";
+                i.CantEnt = "";
+                i.Saldo = "";
+            }
+            return i;
+        }
+
+        public void Delete_IM_Det(string IdPedido)
+        {
+            IMTableAdapters.QueriesTableAdapter adapter = new IMTableAdapters.QueriesTableAdapter();
+            adapter.H2_DELETE_IM_DET(int.Parse(IdPedido));
+        }
+
+        public void Delete_IM_ENT(int Id)
+        {
+            IMTableAdapters.QueriesTableAdapter adapter = new IMTableAdapters.QueriesTableAdapter();
+            adapter.H2_IM_ENT_DELETE(Id);
+        }
+
+         public int Insert_IM_Ent(IM_Ent_Det f, int SalaId, int CamaId, string Tipo)
+        {
+            IMTableAdapters.QueriesTableAdapter adapter = new IMTableAdapters.QueriesTableAdapter();
+            if (f.Insumo_Id != "0")
+            {
+                Farmacia_Movimiento_CtaCte m = new Farmacia_Movimiento_CtaCte();
+                FarmaciaBLL b = new FarmaciaBLL();
+                m.Cantidad = int.Parse(f.UnidadEnt);
+                m.CodigoMovimiento = 2; //egreso
+                m.Descripcion = Tipo + " Nro. Pedido: " + f.IM_Id;
+                m.Fecha = DateTime.Now.ToString();
+                m.InsumoId = int.Parse(f.Insumo_Id);
+                m.PedidoId = Convert.ToInt64(f.IM_Id);
+                m.PedidoTipo = b.NumTipo(Tipo);
+                b.InsertMovimientoCtaCteInsumos(m);
+                adapter.H2_IM_ENT_INSERT(int.Parse(f.UnidadEnt), int.Parse(f.IM_Id), int.Parse(f.Insumo_Id), int.Parse(f.CantEnt), SalaId, CamaId);
+            }
+            else return 1;
+            return 1;
+        }
+
+        private IM_Det CreateFromRow_BuscarIM_Det(IM.H2_IM_DET_BYIDRow row)
+        {
+            IM_Det i = new IM_Det();
+            if (!row.IsCantidadNull()) i.Cantidad = row.Cantidad.ToString();
+            if (!row.IsDescripcionNull()) i.Via = row.Descripcion;
+            if (!row.IsFrecuenciaNull()) i.Horas = row.Frecuencia.ToString();
+            if (!row.IsIdIndicacionMedicaNull()) i.IM_Id = row.IdIndicacionMedica.ToString();
+            if (!row.IsIdInsumoNull()) i.Insumo_Id = row.IdInsumo.ToString();
+            if (!row.IsIdViaNull()) i.Via_Id = row.IdVia.ToString();
+            if (!row.IsIndicacionNull()) i.Indicacion = row.Indicacion;
+            if (!row.IsObservacionNull()) i.Observaciones = row.Observacion;
+            if (!row.IsPresentacionNull()) i.Presentacion = row.Presentacion;
+            if (!row.IsUnidadNull()) i.Medida = row.Unidad;
+            i.EnHoras = row.EnHoras;
+            i.Vademe = row.FueraVademecum;
+            i.Ocultar = row.OcultarIM;
+            if (!row.IsREM_NOMBRENull()) i.Nombre = row.REM_NOMBRE;
+            return i;
+        }
+
+        private IM_Buscar CreateFromRow_BuscarIM_ENT(IM.H2_BUSCAR_IM_ENTRow row)
+        {
+            IM_Buscar i = new IM_Buscar();
+            if (!row.IsapellidoNull()) i.Nombre = row.apellido;
+            if (!row.IsSERV_DESCRIPCIONNull()) i.Servicio = row.SERV_DESCRIPCION;
+            i.Fecha = row.Fecha.ToShortDateString();
+            i.IM_Id = row.Id.ToString();
+            i.NHC = row.NHC.ToString();
+            return i;
+        }
+
+        private IM_Buscar CreateFromRow_BuscarIM(IM.H2_BUSCAR_IMRow row)
+        {
+            IM_Buscar i = new IM_Buscar();
+            if (!row.IsapellidoNull()) i.Nombre = row.apellido;
+            if (!row.IsSERV_DESCRIPCIONNull()) i.Servicio = row.SERV_DESCRIPCION;
+            i.Documento = row.documento.ToString();
+            i.Fecha = row.Fecha.ToShortDateString();
+            i.IM_Id = row.Id.ToString();
+            i.NHC = row.NHC.ToString();
+            if (!row.IsIdInternacionNull()) i.IdInternacion = row.IdInternacion.ToString();
+            if (!row.IsIdSalaNull()) i.IdSala = row.IdSala.ToString();
+            if (!row.IstelefonoNull()) i.Telefono = row.telefono;
+            i.IdCama = row.IdCama.ToString();
+            i.IdMedico = row.IdMedico.ToString();
+            i.IdServicio = row.IdServicio.ToString();
+            return i;
+        }
+
+    }
+
+   
+}

@@ -1,0 +1,285 @@
+﻿var objBusquedaLista = "";
+var IntID = 0;
+var NHCActual = 0;
+
+$(document).ready(function () {
+
+    CargarMedicos();
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    var GET = {};
+
+    document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
+        function decode(s) {
+            return decodeURIComponent(s.split("+").join(" "));
+        }
+        GET[decode(arguments[1])] = decode(arguments[2]);
+    });
+
+
+    if (GET["V"] != "" && GET["V"] != null) {
+        objBusquedaLista = GET["V"];
+        Buscar();
+    }
+
+});
+
+
+function CargarServicios() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Internaciones/IntSSC.asmx/Lista_Servicios_A",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CargarServicios_Cargados,
+        error: errores
+    });
+}
+
+function CargarServicios_Cargados(Resultado) {
+
+    var Servicios = Resultado.d;
+    
+    var Tabla_Datos = "";
+    
+
+
+    $("#TServicios").empty();
+
+    
+    $.each(Servicios, function (index, servicio) {
+        Tabla_Datos = Tabla_Datos + "<tr";
+        Tabla_Datos = Tabla_Datos + "><td><input type='checkbox' name='Serv' disabled value='" + servicio.id + "' ></td>";
+        Tabla_Datos = Tabla_Datos + "<td>" + servicio.descripcion + "</td>";
+        });
+
+
+
+    Tabla_Fin = "</tbody></table>";
+    $("#TServicios").html(Tabla_Datos );
+}
+
+
+$(document).ready(function () {
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    CargarServicios();
+
+});
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+
+function Buscar() {
+    if ($("#cbo_Todos").is(':checked')) {objBusquedaLista = ""; }
+    $.ajax({
+        type: "POST",
+        data: '{ServiciosId: "' + objBusquedaLista + '"}',
+        url: "../Json/AtInternados/ListaPacientesInternados.asmx/BuscarInternados",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Buscar_Cargar,
+        error: errores
+    });
+}
+
+function Buscar_Cargar(Resultado) {
+
+    var Internados = Resultado.d;
+
+    var Tabla_Datos = "";
+
+
+    $("#TInternados").empty();
+
+
+    $.each(Internados, function (index, internado) {
+        Tabla_Datos = Tabla_Datos + "<tr onclick='CargarAtInternacion(" + internado.internacion + ");'>";
+        Tabla_Datos = Tabla_Datos + "<td>" + internado.Sala + "</td>";
+        Tabla_Datos = Tabla_Datos + "<td>" + internado.Cama + "</td>";
+        Tabla_Datos = Tabla_Datos + "<td id='int" + internado.internacion + "'>" + internado.NHC + "</td>";
+        Tabla_Datos = Tabla_Datos + "<td>" + internado.Afiliado + "</td>";
+        Tabla_Datos = Tabla_Datos + "<td>" + internado.FIngreso + "</td>";
+        Tabla_Datos = Tabla_Datos + "<td>" + internado.Diagnostico + "</td>";
+        Tabla_Datos = Tabla_Datos + "</tr>";
+    });
+
+    Tabla_Fin = "</tbody></table>";
+    $("#TInternados").html(Tabla_Datos);
+}
+
+$("#btnBuscar").click(function () { 
+    VerificarTodo();
+});
+
+function CargarAtInternacion(Id) {
+    IntID = Id;
+    Cargar_Paciente_NHC($("#int" + Id).html(), Id);
+}
+
+function VerificarTodo() {
+    var Lista = "";
+    objBusquedaLista = "";
+    
+    if ($("#cbo_Todos").is(':checked')) {
+        //objBusquedaLista = objBusquedaLista + $("#cbo_Todos").val() + ",";
+        objBusquedaLista = "0";
+    }
+    else
+    {
+
+    $("#TServicios input").each(function () {
+        if ($(this).is(':checked')) {
+            objBusquedaLista = objBusquedaLista + $(this).val() + ",";
+        }
+    });
+
+    }
+    Buscar();
+}
+
+$("#btnImprimir").click(function () {
+    var Lista = "";
+    objBusquedaLista = "";
+
+    if ($("#cbo_Todos").is(':checked')) {
+        //objBusquedaLista = objBusquedaLista + $("#cbo_Todos").val() + ",";
+        objBusquedaLista = "0";
+    }
+    else {
+
+        $("#TServicios input").each(function () {
+            if ($(this).is(':checked')) {
+                objBusquedaLista = objBusquedaLista + $(this).val() + ",";
+            }
+        });
+
+    }
+
+    self.location = "../Impresiones/ListaInternados.aspx?ServiciosId=" + objBusquedaLista;
+
+});
+
+
+
+
+
+$("#cbo_Todos").click(function () {
+
+
+    $("#TServicios input").each(function () {
+
+        if ($("#cbo_Todos").is(':checked')) {
+            $(this).attr('disabled', 'disabled');
+        }
+        else {
+            $(this).removeAttr('disabled');
+        }
+
+    })
+    
+    $("#cbo_Todos").removeAttr('disabled');
+
+});
+
+
+$(function () {
+    $("#Tabla").click(function () {
+        if (IntID != 0) {
+            $(".hsuper_menu").toggleClass("hsuper_menu_Accion");
+        }
+    });
+});
+
+function Cargar_Paciente_NHC(NHC, Index) {
+    NHCActual = Cargar_Paciente_NHC;
+    Ind = Index;
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_NHC_Cargado,
+        error: errores
+    });
+}
+
+
+function Cargar_Paciente_NHC_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+
+
+    $.each(Paciente, function (index, paciente) {
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+        $("#CargadoEdad").html(AnioActual.getFullYear() - AnioNacimiento.getFullYear());
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+    });
+
+}
+
+function CargarMedicos() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/Medicos_Por_Usuarios",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CargarMedicos_Cargados,
+        error: errores
+    });
+}
+
+function CargarMedicos_Cargados(Resultado) {
+
+    var Medicos = Resultado.d;
+    $('#cbo_Medico').empty();
+    $.each(Medicos, function (index, medico) {
+        $('#cbo_Medico').append(
+              $('<option></option>').val(medico.Id).html(medico.Medico)
+            );
+    });
+    CargarEspecialidad($('#cbo_Medico option:selected').val());
+}
+
+function Evolucion() {
+    self.location = "Evolucion.aspx?IntID=" + IntID + "&B=" + objBusquedaLista + "&MedicoId=" + $("#cbo_Medico option:selected").val();
+}
+
+function HC() {
+    self.location = "../HistoriaClinica/HistoriaClinica.aspx?NHC=" + $("#CargadoNHC").html();
+}
+
+function IM() {
+    self.location = "../Farmacia/CargarIM.aspx?NHC=" + $("#CargadoNHC").html();
+}
+
+function Epicrisis() {
+    self.location = "../AtInternados/Epicrisis.aspx?NHC=" + $("#CargadoNHC").html() + "&IntId=" + IntID;
+}
+
+function Interconsulta() {
+    self.location = "../AtInternados/Interconsulta.aspx?NHC=" + $("#CargadoNHC").html() + "&IntId=" + IntID + "&MedicoId=" + $("#cbo_Medico :selected").val();
+}
+
+function HojaEnfermeria() {
+    self.location = "../AtInternados/HojaEnfermeria.aspx?NHC=" + $("#CargadoNHC").html() + "&IntId=" + IntID + "&MedicoId=" + $("#cbo_Medico :selected").val();
+}

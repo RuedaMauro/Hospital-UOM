@@ -1,0 +1,734 @@
+﻿var Id = 0;
+var Cirujano = 0;
+var CamaId;
+var QueryFecha = '';
+var AyudanteId;
+var AnestesistaId;
+var AnestesisId;
+var CirugiaId;
+
+
+
+$(document).ready(function () {
+    $.validator.setDefaults({
+        ignore: ""
+    });
+    $("#frm_").validate({
+        rules: {
+            'fecha_cirugia': { required: true, dateES: true }
+        },
+        messages: {
+            'fecha_cirugia': { required: '', dateES: '' }
+        },
+        invalidHandler: function (e, validator) {
+            var list = validator.invalidElements();
+            //RemoveClass();
+            for (var i = 0; i < list.length; i++) {
+                var name_element = $(list[i]).attr("name");
+                $("#control" + name_element).addClass("error");
+            }
+        }
+
+    });
+
+    $("#txtNHC").mask("9999999999?9", { placeholder: "-" });
+    $("#txt_dni").mask("9999999?9", { placeholder: "-" });
+    $("#fecha_cirugia").mask("99/99/9999", { placeholder: "-" });
+    $("#fecha_cirugia").datepicker();
+    List_Diagnostico(0, true);
+    GetSala();
+    Especialidades_Lista();
+    List_Medicos();
+    List_Medicos_Quirofano();
+    ListaAnestesia();
+    ListaCirugia();
+    ListMotivo();
+    var Query = {};
+    Query = GetQueryString();
+    if (Query['NHC'] != null) {
+        Cargar_Paciente_NHC(Query['NHC']);
+    }
+    Id = Query['Id'];
+    if (Id > 0) {
+        LoadCirugia();
+    }
+});
+
+function imgErrorPaciente(image) {
+    image.onerror = "";
+    image.src = "../img/silueta.jpg";
+    return true;
+}
+
+$("#txtNHC").keypress(function (event) {
+    if (event.which == 13) {
+        if ($('#txtNHC').attr('readonly') == undefined) {
+            if ($('#txtNHC').val() != '-----------') {
+                Cargar_Paciente_NHC($("#txtNHC").val());
+
+            }
+        }
+
+    }
+});
+
+$("#txt_dni").blur(function () {
+    if ($('#txt_dni').val() != '--------') {
+        Cargar_Paciente_Documento($("#txt_dni").val());
+
+    }
+});
+
+$("#txtNHC").blur(function () {
+    if ($('#txtNHC').val() != '-----------') {
+        Cargar_Paciente_NHC($("#txtNHC").val());
+
+    }
+});
+
+
+$("#btnBuscarPaciente").fancybox({
+    'hideOnContentClick': true,
+    'width': '75%',
+    'height': '75%',
+    'autoScale': false,
+    'transitionIn': 'none',
+    'transitionOut': 'none',
+    'type': 'iframe'
+});
+
+$("a#inline").fancybox({
+    'hideOnContentClick': true
+});
+
+function RecargarPagina(url) {
+    document.location = "../Quirofano/PlanificarCirugia.aspx" + url;
+}
+
+
+function GetQueryString() {
+    var querystring = location.search.replace('?', '').split('&');
+    // declare object
+    var queryObj = {};
+    // loop through each name-value pair and populate object
+    for (var i = 0; i < querystring.length; i++) {
+        // get name and value
+        var name = querystring[i].split('=')[0];
+        var value = querystring[i].split('=')[1];
+        // populate object
+        queryObj[name] = value;
+    }
+    return queryObj;
+}
+
+$("#txt_dni").keypress(function (event) {
+    if (event.which == 13) {
+        if ($('#txt_dni').attr('readonly') == undefined) {
+            Cargar_Paciente_Documento($("#txt_dni").val());
+        }
+
+    }
+});
+
+function Cargar_Paciente_NHC(NHC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_NHC_Cargado,
+        error: errores
+    });
+}
+
+
+function Cargar_Paciente_NHC_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+    $.each(Paciente, function (index, paciente) {
+
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+        $("#txtPaciente").attr('value', paciente.Paciente);
+        $("#txtNHC").attr('value', paciente.cuil);
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+            $("#desdeaqui").focus();
+        }
+
+    });
+}
+
+
+
+
+function Cargar_Paciente_Documento(Documento) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Cargar_Paciente_Documento",
+        data: '{Documento: "' + Documento + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Documento_Cargado,
+        error: errores
+    });
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+function Cargar_Paciente_Documento_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+    $.each(Paciente, function (index, paciente) {
+
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+        $("#txtPaciente").attr('value', paciente.Paciente);
+        $("#txtNHC").attr('value', paciente.cuil);
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+            $("#desdeaqui").focus();
+        }
+
+    });
+}
+
+function List_Diagnostico(Id, estado) {
+    var json = JSON.stringify({"Id": Id, "estado": estado});
+    $.ajax({
+        type: "POST",
+        data: json,
+        url: "../Json/Quirofano/Quirofano_.asmx/Diagnostico",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Diagnostico_Cargado,
+        error: errores
+    });
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+function List_Diagnostico_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Diagnostico) {
+        $("#cbo_Diagnostico").append($("<option></option>").val(Diagnostico.id).html(Diagnostico.diagnostico));
+    });
+
+}
+
+function List_Medicos() {
+    var json = JSON.stringify({ "Apellido": null, "MN": null, "MP": null, "objBusquedaLista": null });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Medicos.asmx/MedicoBuscar",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Medicos_Cargado,
+        error: errores
+    });
+}
+
+function List_Medicos_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Medico) {
+        $("#MedSolicitante").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+    });
+
+}
+
+function ListMotivo() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/ListMotivo",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ListMotivo_Cargado,
+        error: errores
+    });
+}
+
+function ListMotivo_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Motivo) {
+        $("#Motivo").append($("<option></option>").val(Motivo.id).html(Motivo.motivo));
+    });
+
+}
+
+function GetCama(Sala) {
+    var json = JSON.stringify({ "IdCama": 0,"Sala": parseInt(Sala) });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Internaciones/IntSSC.asmx/Lista_Camas",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetCama_Cargado,
+        error: errores
+    });
+}
+
+function GetCama_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $("#Cama").empty();
+    $.each(Lista, function (index, Cama) {
+        $("#Cama").append($("<option></option>").val(Cama.id).html(Cama.descripcion));
+        if (CamaId == Cama.id) $("#Cama").val(CamaId);
+    });
+}
+
+function GetCama_Load(Sala) {
+    var json = JSON.stringify({ "IdCama": 0, "Sala": parseInt(Sala) });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Internaciones/IntSSC.asmx/Lista_Camas",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetCama_Cargado_Load,
+        error: errores
+    });
+}
+
+function GetCama_Cargado_Load(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Cama) {
+        $("#Cama").append($("<option></option>").val(Cama.id).html(Cama.descripcion));
+        if (CamaId == Cama.id) $("#Cama").val(CamaId);
+    });
+}
+
+
+function GetSala() {
+    var json = JSON.stringify({"Servicio": 0});
+    $.ajax({
+        type: "POST",
+        url: "../Json/Internaciones/IntSSC.asmx/Lista_Salas_S",
+        data:json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetSala_Cargado,
+        error: errores
+    });
+}
+
+function GetSala_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Sala) {
+        $("#Sala").append($("<option></option>").val(Sala.id).html(Sala.descripcion));
+    });
+
+}
+
+$("#Sala").change(function () {
+    var Sala = $("#Sala :selected").val();
+    GetCama(Sala);
+});
+
+function Especialidades_Lista() {
+    var json = JSON.stringify({ "Todas": false, "Id": 0, "SoloTurnos": false });
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Especialidades_Lista",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Especialidades_Lista_Cargado,
+        error: errores
+    });
+}
+
+function Especialidades_Lista_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Especialidad) {
+        $("#Especialidad").append($("<option></option>").val(Especialidad.Id).html(Especialidad.Especialidad));
+    });
+}
+
+function List_Medicos_Quirofano() {
+    var json = JSON.stringify({ "Activo": 'A' });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/List_Medicos_Quirofano",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Medicos_Quirofano_Cargado,
+        error: errores
+    });
+}
+
+function List_Medicos_Quirofano_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Medico) {
+        $("#Ayudante").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+        $("#Anestesista").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+        if (Medico.Id == AyudanteId) $("#Ayudante").val(AyudanteId);
+        if (Medico.Id == AnestesistaId) $("#Anestesista").val(AnestesistaId);
+    });
+}
+
+
+
+function ListaAnestesia() {
+    var json = JSON.stringify({ "Id": 0 });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/ListaAnestesia",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ListaAnestesia_Cargado,
+        error: errores
+    });
+}
+
+function ListaAnestesia_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $("#Anestesia").empty();
+    $.each(Lista, function (index, Anestesia) {
+        $("#Anestesia").append($("<option></option>").val(Anestesia.id).html(Anestesia.tipo));
+        if (Anestesia.id == AnestesisId) $("#Anestesia").val(AnestesisId);
+    });
+}
+
+function ListaCirujano() {
+    var Especialidad = $("#Especialidad :selected").val();
+    var json = JSON.stringify({ "Activo": "A", "Especialidad": Especialidad });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/List_Medicos_QuirofanobyEsp",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ListaCirujano_Cargado,
+        error: errores
+    });
+}
+
+function ListaCirujano_Load(Especialidad) {
+    var json = JSON.stringify({ "Activo": "A", "Especialidad": Especialidad });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/List_Medicos_QuirofanobyEsp",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ListaCirujano_Cargado_Load,
+        error: errores
+    });
+}
+
+function ListaCirujano_Cargado_Load(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Medico) {
+        if (Cirujano == Medico.Id)
+            $("#Cirujano").append($("<option selected='selected'></option>").val(Medico.Id).html(Medico.Medico));
+        else
+            $("#Cirujano").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+    });
+}
+
+function ListaCirujano_Cargado(Resultado) {
+    $("#Cirujano").empty();
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Medico) {
+        $("#Cirujano").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+    });
+}
+
+$("#Especialidad").change(function () {
+    ListaCirujano();
+});
+
+function ListaCirugia() {
+    var json = JSON.stringify({ "Id": 0 });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/ListaCirugia",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ListaCirugia_Cargado,
+        error: errores
+    });
+}
+
+function ListaCirugia_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $("#Cirugia").empty();
+    $.each(Lista, function (index, Cirugia) {
+        $("#Cirugia").append($("<option></option>").val(Cirugia.id).html(Cirugia.tipo));
+        if (Cirugia.id == CirugiaId) $("#Cirugia").val(CirugiaId);
+    });
+} 
+
+
+$("#btnOpciones").click(function () {
+    $("#myModal").modal('show');
+});
+
+//Suspender Cirugia...
+$("#btnSuspender").click(function () {
+    var Motivo = $("#Motivo :selected").val();
+    if (Motivo > 0) {
+        var json = JSON.stringify({ "Id": Id, "Motivo": Motivo });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Quirofano/Quirofano_.asmx/SuspenderCirugia",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Cirugia_Suspendida,
+            error: errores
+        });
+    }
+    else alert('Seleccione Motivo de Suspensión');
+});
+
+function Cirugia_Suspendida(Resultado) {
+    var r = Resultado.d;
+    if (r > 0) alert("Cirugia Suspendida!!!");
+    else alert("Error al Suspender Cirugia!!!");
+    window.location = "CargadeTurnos.aspx";
+}
+
+//Borrar Cirugia
+$("#btnBorrar").click(function () {
+    var json = JSON.stringify({ "Id": Id});
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/BorrarCirugia",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cirugia_Borrada,
+        error: errores
+    });
+});
+
+function Cirugia_Borrada(Resultado) {
+    var r = Resultado.d;
+    if (r > 0) alert("Cirugia Borrada!!!");
+    else alert("Error al Borrar Cirugia!!!");
+    window.location = "CargadeTurnos.aspx";
+}
+
+
+//Guardar Cirugia....
+$("#btnGuardar").click(function () {
+    var valid = $("#frm_").valid();
+    if (valid == true) {
+        var q = {};
+        q.id = Id;
+        q.nhc = $("#CargadoNHC").html();
+        q.fecha = $("#fecha_cirugia").val();
+        q.hora = $("#Hora").val();
+        q.diagnostico_id = $("#cbo_Diagnostico :selected").val();
+        if ($("#chkUrgencia").is(':checked'))
+            q.urgencia = true;
+        else q.urgencia = false;
+        q.sala_id = $("#Sala :selected").val();
+        q.cama_id = $("#Cama :selected").val();
+        q.cirugia_tipo_id = $("#Cirugia :selected").val();
+        q.cirujano_especialidad_id = $("#Especialidad :selected").val();
+        q.cirujano_id = $("#Cirujano :selected").val();
+        q.ayudante_id = $("#Ayudante :selected").val();
+        q.anestesista_id = $("#Anestesista :selected").val();
+        q.anestesia_tipo_id = $("#Anestesia :selected").val();
+        q.hemo = $("#Hemo").val();
+        if ($("#chkHemo").is(':checked'))
+            q.cbo_hemo = true;
+        else
+            q.cbo_hemo = false;
+        if ($("#chkAnpa").is(':checked'))
+            q.cbo_anpa = true;
+        else
+            q.cbo_anpa = false;
+        if ($("#chkRayos").is(':checked'))
+            q.cbo_rayos = true;
+        else
+            q.cbo_rayos = false;
+        if ($("#chkMonitoreo").is(':checked'))
+            q.cbo_monitoreo = true;
+        else
+            q.cbo_monitoreo = false;
+        q.medico_solicitante = $("#MedSolicitante :selected").val();
+        q.observaciones = $("#Observaciones").val();
+        var json = JSON.stringify({ "qobj": q });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Quirofano/Quirofano_.asmx/GuardarCirugia",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Cirugia_Guardada,
+            error: errores
+        });
+    }
+});
+
+function Cirugia_Guardada(Resultado) {
+    var Id = Resultado.d;
+    if (Id > 0) {
+        alert("Cirugia Nro: " + Id + " Guardada Correctamente!");
+        window.location = "CargadeTurnos.aspx";
+    }
+    else alert("Error al Guardar Cirugia!!");
+}
+
+function LoadCirugia() {
+    var json = JSON.stringify({"Id": Id, "Fecha": null ,"Baja":false});
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/ListaCirugias_Id",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cirugia_Cargada,
+        error: errores
+    });
+}
+
+function Cirugia_Cargada(Resultado) {
+    var Cirugias = Resultado.d;
+    $.each(Cirugias, function (index, Cirugia) {
+        $(".opciones").removeAttr('disabled');
+        Cargar_Paciente_NHC(Cirugia.nhc);
+        QueryFecha = Cirugia.fecha;
+        $("#fecha_cirugia").val(Cirugia.fecha);
+        $("#Hora").val(Cirugia.hora);
+        $("#cbo_Diagnostico").val(Cirugia.diagnostico_id);
+        if (Cirugia.urgencia == true)
+            $("#chkUrgencia").attr('checked', true);
+        $("#Sala").val(Cirugia.sala_id);
+        CamaId = Cirugia.cama_id;
+        //GetCama_Load(Cirugia.sala_id);
+        CirugiaId = Cirugia.cirugia_tipo_id;
+        $("#Especialidad").val(Cirugia.cirujano_especialidad_id);
+        Cirujano = Cirugia.cirujano_id;
+        ListaCirujano_Load(Cirugia.cirujano_especialidad_id);
+        AyudanteId = Cirugia.ayudante_id;
+        AnestesistaId = Cirugia.anestesista_id;
+        AnestesisId = Cirugia.anestesia_tipo_id;
+        ListaAnestesia();
+        List_Medicos_Quirofano();
+        ListaCirugia();
+        $("#Hemo").val(Cirugia.hemo);
+        if (Cirugia.cbo_hemo == true)
+            $("#chkHemo").attr('checked', true);
+        if (Cirugia.cbo_anpa == true)
+            $("#chkAnpa").attr('checked', true);
+        if (Cirugia.cbo_rayos == true)
+            $("#chkRayos").attr('checked', true);
+        if (Cirugia.cbo_monitoreo == true)
+            $("#chkMonitoreo").attr('checked', true);
+        $("#MedSolicitante").val(Cirugia.medico_solicitante);
+        $("#Observaciones").val(Cirugia.observaciones);
+        $("#controlMotivo").show();
+        GetCama(Cirugia.sala_id);
+    });
+    $("#hastaaqui").fadeIn(1500);
+    $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top - 10 }, 500);
+    $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+}
+
+//Insumos Pre-Quirurgicos
+$("#btnPreQuirurgicos").click(function () {
+    window.location = "Carga-PreQuirurgicos.aspx?Id=" + Id;
+});
+
+//Carga de Insumos
+$("#btnCargaInsumos").click(function () {
+    window.location = "CargaInsumos.aspx?Id=" + Id;
+});
+
+//Datos de la intervencion
+$("#btnIntervencion").click(function () {
+    window.location = "DatosIntervencion.aspx?Id=" + Id;
+});
+
+//Datos de PreAnes
+$("#btnPreAnestesia").click(function () {
+    window.location = "Preanestesico.aspx?Id=" + Id;
+});
+
+//Datos de Protocolo
+$("#btnProtocolos").click(function () {
+   window.location = "Protocolos.aspx?Id=" + Id;
+});
+
+//Datos de PosAnes
+$("#btnPosAnestesia").click(function () {
+    window.location = "RecuperacionPosAnestesica.aspx?Id=" + Id;
+});
+
+
+//Datos de Res 28
+$("#btnRes28").click(function () {
+    window.location = "Resolucion28.aspx?Id=" + Id;
+});
+
+//Datos de Protesis y Otros
+$("#btnCargaExtras").click(function () {
+    window.location = "ProtesisyOtros.aspx?Id=" + Id;
+});
+
+$("#btnVolver").click(function () {
+    if (QueryFecha != '')
+        window.location = "CargadeTurnos.aspx?QueryFecha=" + QueryFecha;
+    else
+        window.location = "CargadeTurnos.aspx";
+});

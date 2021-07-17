@@ -1,0 +1,94 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Services;
+using System.Web.Script.Services;
+
+/// <summary>
+/// Summary description for Medicos
+/// </summary>
+[WebService(Namespace = "http://tempuri.org/")]
+[WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
+// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
+// [System.Web.Script.Services.ScriptService]
+[ScriptService]
+public class Medicos : System.Web.Services.WebService {
+
+    public Medicos () {
+
+        //Uncomment the following line if using designed components 
+        //InitializeComponent(); 
+    }
+
+    [WebMethod]
+    public medicoslista Cargar_Medico_Id(int MedicoId, int Especialidad)
+    {
+        Hospital.MedicosBLL MedicosEncabezado = new Hospital.MedicosBLL();
+        return MedicosEncabezado.Medicos_Encabezado(MedicoId, Especialidad);
+    }
+
+    [WebMethod]
+    public List<medicos_Buscar> MedicoBuscar(string Apellido, string MN, string MP, string objBusquedaLista)
+    {
+        Hospital.MedicosBLL MedicosBuscar = new Hospital.MedicosBLL();
+        return MedicosBuscar.Medicos_Buscar(Apellido, MN, MP, objBusquedaLista);
+    }
+
+    [WebMethod]
+    public medicos_Buscar_Info MedicoBuscar_Info(int Id)
+    {
+        Hospital.MedicosBLL MedicosBuscar = new Hospital.MedicosBLL();
+        return MedicosBuscar.Medicos_Buscar_Info(Id);
+    }
+
+    [WebMethod]
+    public List<medicos_Especialidades> MedicosEspecialidades(int Id)
+    {
+        Hospital.MedicosBLL MedicosBuscar = new Hospital.MedicosBLL();
+        return MedicosBuscar.Medicos_Especialidades_Id(Id);
+    }
+
+    
+
+
+    [WebMethod]
+    public int Guardar_Medicos(List<medicos_Especialidades> objEspecialidades, int Id, string Apellido, string FechaBaja, string MotivoBaja, string Calle, string Nro, string Piso, string Depto, string CP, int LocalidadId, string Provincia, string TipoDoc, string NroDoc, string FechaNacimiento, string Sexo, string Telefono, string Mail, int CantMinSobreturno, string Observaciones, string IsActive, string Cuit, bool Retencion, bool Honorarios, bool MostrarenTurnos)
+    {
+
+        DateTime laFechaBaja = Convert.ToDateTime("31/12/9999");
+        DateTime laFechaNacimiento = Convert.ToDateTime("31/12/9999");
+
+        try 
+        {
+            laFechaBaja = Convert.ToDateTime(FechaBaja);
+        }
+        catch
+        {
+            laFechaBaja = Convert.ToDateTime("31/12/9999");
+        }
+
+        try
+        {
+            laFechaNacimiento = Convert.ToDateTime(laFechaNacimiento);
+        }
+        catch
+        {
+            laFechaNacimiento = Convert.ToDateTime("31/12/9999");
+        }
+
+        
+
+        Hospital.MedicosBLL MedicosBuscar = new Hospital.MedicosBLL();
+
+        return MedicosBuscar.Medicos_Guardar(objEspecialidades, Id, Apellido, laFechaBaja, MotivoBaja, Calle, Nro, Piso, Depto, CP, LocalidadId, Provincia, "", NroDoc, laFechaNacimiento, Sexo, Telefono, Mail, CantMinSobreturno, Observaciones, IsActive, Cuit, Retencion, Honorarios, MostrarenTurnos);
+    }
+
+    [WebMethod]
+    public medicos_Buscar_Nombre MedicoBuscar_Nombre(int Id)
+    {
+        Hospital.MedicosBLL MedicosBuscar = new Hospital.MedicosBLL();
+        return MedicosBuscar.Medicos_Buscar_Nombre(Id);
+    }
+    
+}

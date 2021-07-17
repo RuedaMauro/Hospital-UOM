@@ -1,0 +1,42 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for GenerarTurnosBLL
+/// </summary>
+namespace Hospital
+{
+    public class GenerarTurnosBLL
+    {
+        public GenerarTurnosBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        public int GenerateTurnosByRange(int MedicoId, int EspecialidadId, DateTime FechaInicio, DateTime FechaFin)
+        {
+            GenerarTurnosDALTableAdapters.QueriesTableAdapter adapter = new GenerarTurnosDALTableAdapters.QueriesTableAdapter();
+            object obj = adapter.H2_Turnos_Turno_GenerarByRange(MedicoId, EspecialidadId, FechaInicio, FechaFin);
+            return Convert.ToInt32(obj);
+        }
+
+        public int GenerateTurnosByDay(int MedicoId, int EspecialidadId, DateTime DiaYHoraInicio, DateTime DiaYHoraFin, int Duracion, int ConsultorioId)
+        {
+            GenerarTurnosDALTableAdapters.QueriesTableAdapter adapter = new GenerarTurnosDALTableAdapters.QueriesTableAdapter();
+            object obj = adapter.H2_Turnos_Turno_GenerarByDiaYHorario(MedicoId, EspecialidadId, DiaYHoraInicio, DiaYHoraFin, Duracion, ConsultorioId);
+            return Convert.ToInt32(obj);
+        }
+
+        public int QuitarTurnosFeriados(int MedicoID, int Especialidad)
+        {
+            GenerarTurnosDALTableAdapters.QueriesTableAdapter adapter = new GenerarTurnosDALTableAdapters.QueriesTableAdapter();
+            object obj = adapter.H2_Feriado_EliminarTurnosConFeriados(MedicoID, Especialidad);
+            return Convert.ToInt32(obj);
+        }
+    }
+
+}

@@ -1,0 +1,99 @@
+﻿var Todos = 0;
+var objBusquedaLista = "";
+
+function CargarServicios() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Internaciones/IntSSC.asmx/Lista_Servicios_A",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CargarServicios_Cargados,
+        error: errores
+    });
+}
+
+function CargarServicios_Cargados(Resultado) {
+    var Servicios = Resultado.d;
+    $('#FiltroServicios').empty();
+
+    //$('#FiltroServicios').append('<label style="text-align:left;" class="checkbox"><input onclick="Ft(0)" id="cbo_Todos" type="checkbox" value="0" CHECKED>*TODOS*</label>');
+
+    $.each(Servicios, function (index, s) {
+        $('#FiltroServicios').append('<label style="text-align:left;" class="checkbox"><input onclick="Ft(' + s.id + ')" id="Pr' + s.id + '" type="checkbox" value="' + s.id + '">' + s.descripcion + '</label>');
+        $("#Pr" + s.id).attr('disabled', 'disabled');
+    });
+}
+
+function Ft(Id) {
+    if (Id == 0) {
+
+
+        $("#FiltroServicios input").each(function () {
+
+            if (Todos == 1) {
+                $(this).attr('disabled', 'disabled');
+            }
+            else {
+                $(this).removeAttr('disabled');
+            }
+
+        })
+
+        if (Todos == 1) { Todos = 0; } else { Todos = 1; }
+
+        $("#cbo_Todos").removeAttr('disabled');
+
+    }
+}
+
+CargarServicios();
+$("#txtFechaInicio").html(FechaActual());
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+
+$('#btn_Buscar_Censo').click(function () {
+    VerificarTodo();
+});
+
+function VerificarTodo() {
+    var Lista = "";
+    objBusquedaLista = "";
+
+    if ($("#cbo_Todos").is(':checked')) {
+        //objBusquedaLista = objBusquedaLista + $("#cbo_Todos").val() + ",";
+        objBusquedaLista = "0";
+    }
+    else {
+        $("#FiltroServicios input").each(function () {
+
+            if ($(this).is(':checked')) {
+                objBusquedaLista = objBusquedaLista + $(this).val() + ",";
+            }
+        });
+    }
+    Imprimir();
+}
+
+function Imprimir() {
+
+    var Pagina = "../Impresiones/Internacion_Censo.aspx?fecha=" + $("#txtFechaInicio").html() + "&servIds=" + objBusquedaLista;
+    Pagina = Pagina.slice(0, -1);
+    $.fancybox(
+		{
+		    'autoDimensions': false,
+		    'href': Pagina,
+		    'width': '75%',
+		    'height': '75%',
+		    'autoScale': false,
+		    'transitionIn': 'none',
+		    'transitionOut': 'none',
+		    'type': 'iframe',
+		    'hideOnOverlayClick': false,
+		    'enableEscapeButton': false
+		}
+	        );
+}

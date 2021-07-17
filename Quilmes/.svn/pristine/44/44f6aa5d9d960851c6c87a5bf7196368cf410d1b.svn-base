@@ -1,0 +1,78 @@
+﻿$(document).ready(function () {
+    $("#txtFechaInicio").mask("99/99/9999", { placeholder: "-" });
+    $("#txtFechaFin").mask("99/99/9999", { placeholder: "-" });
+    $("#txtNHC").mask("9999999999?9", { placeholder: "-" });
+
+    $("#txtFechaInicio").datepicker();
+    $("#txtFechaFin").datepicker();
+    
+});
+
+$("#btnBuscar").click(function () {
+    BuscarSolicitudTraslado();
+});
+
+
+function BuscarSolicitudTraslado() {
+
+ var json = JSON.stringify({
+        "nhc": $("#txtNHC").val(),
+        "fechainicio": $("#txtFechaInicio").val(),
+        "fechafinal": $("#txtFechaFin").val(),
+        "Afiliado": $("#txtAfiliado").val()
+    });
+
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/BuscarSolicitudTraslado",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: BuscarSolicitudTraslado_Cargado,
+        error: errores
+    });
+}
+
+function BuscarSolicitudTraslado_Cargado(Resultado) {
+    var Busquedas = Resultado.d;
+    var PError = false;
+    var Datos = "";
+    $.each(Busquedas, function (index, busqueda) {
+
+        Datos = Datos + "<tr ";
+        Datos = Datos + " onclick='javascript:Cargar_Paciente_NHC(" + busqueda.NHC + "," + busqueda.protocolo + "," + busqueda.medicoid + ");' >";
+        Datos = Datos + "<td>" + busqueda.protocolo + "</td>";
+        Datos = Datos + "<td>" + busqueda.fechaingreso + "</td>";
+        Datos = Datos + "<td>" + busqueda.documento + "</td>";
+        Datos = Datos + "<td>" + busqueda.paciente + "</td></tr>";
+    });
+
+    $('#TablaResultado').html(Datos);
+}
+
+function Cargar_Paciente_NHC(NHC, Protocolo, MedicoId) {
+    self.location = "SolicituddeTraslado.aspx?MedicoId=" + MedicoId + "&NHC=" + NHC + "&Protocolo=" + Protocolo;
+}
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+function CargarST(Protocolo) {
+    var json = JSON.stringify({
+        "Protocolo": Protocolo
+    });
+
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/BuscarSolicitudTraslado",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CargarST_Cargado,
+        error: errores
+    });
+}
+

@@ -1,0 +1,159 @@
+﻿var MedicoId = 0;
+var NHC = 0;
+function Cargar_Paciente_NHC(NHC) {
+
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_NHC_Cargado,
+        error: errores
+    });
+}
+
+$('#fotopaciente').error(function () {
+    $(this).attr('src', '../img/silueta.jpg');
+});
+
+function Cargar_Paciente_NHC_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+
+
+    $.each(Paciente, function (index, paciente) {
+        
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+        $("#CargadoEdad").html(AnioActual.getFullYear() - AnioNacimiento.getFullYear());
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html($("#cboSeccional :selected").text());
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+        }
+
+    });
+
+}
+
+
+$(document).ready(function () {
+    
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    var GET = {};
+
+    document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
+        function decode(s) {
+            return decodeURIComponent(s.split("+").join(" "));
+        }
+
+        GET[decode(arguments[1])] = decode(arguments[2]);
+    });
+
+
+    if (GET["MedicoId"] != "") {
+        MedicoId = GET["MedicoId"];
+    }
+
+    if (GET["NHC"] != "") {
+        NHC = GET["NHC"];
+        Cargar_Paciente_NHC(NHC);
+        Cargar_Ultimo();
+    }
+
+
+
+
+});
+
+
+$('#desdeaqui').click(function () {
+    $("#hastaaqui").fadeIn(1500);
+    $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top - 60 }, 500);
+    $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+    $('#cbo_Especialidad').focus();
+});
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+
+$("#btnGuardarCertificado").click(function () {    
+    GuardarCertificado();
+});
+
+function GuardarCertificado() {
+
+    var json = JSON.stringify({
+        "MedicoId": MedicoId,
+        "Indicaciones": $('#txtCertificado').val(),
+        "NHC": NHC
+    });
+
+
+    $.ajax({
+        type: "POST",
+        data: json,
+        url: "../Json/AtConsultorio/CertificadoMedico.asmx/CertificadoMedico_Guardar",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CertificadoGuardado,
+        error: errores
+    });
+}
+
+function CertificadoGuardado(Resultado) {
+    var Pedidos = Resultado.d;
+    self.location = "../Impresiones/CertificadoMedico.aspx?Id=" + Pedidos + " ";
+}
+
+
+
+function Cargar_Ultimo() {
+
+    var json = JSON.stringify({
+        "MedicoId": MedicoId,
+        "NHC": NHC
+    });
+
+
+    $.ajax({
+        type: "POST",
+        data: json,
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/At_Consultorio_CertificadoUltimo",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CertificadoUltimoCargado,
+        error: errores
+    });
+}
+
+function CertificadoUltimoCargado(Resultado) {
+    var Certificado = Resultado.d;
+    $("#txtAnterior").val(Certificado.Indicaciones);
+    $("#btnUC").show();
+}
+
+$("#btnUC").click(function () {
+    $("#txtCertificado").val($("#txtAnterior").val());
+});

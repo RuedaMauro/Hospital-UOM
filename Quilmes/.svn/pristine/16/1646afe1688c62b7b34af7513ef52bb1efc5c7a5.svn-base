@@ -1,0 +1,344 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Services;
+using System.Web.Script.Services;
+
+/// <summary>
+/// Summary description for IntSSC
+/// </summary>
+[WebService(Namespace = "http://tempuri.org/")]
+[WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
+// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
+// [System.Web.Script.Services.ScriptService]
+[ScriptService]
+    public class IntSSC : System.Web.Services.WebService {
+
+    public IntSSC () {
+
+        //Uncomment the following line if using designed components 
+        //InitializeComponent(); 
+    }
+
+    [WebMethod]
+    public List<servicio> Lista_Servicios()
+    {
+        Hospital.ServicioBLL s = new Hospital.ServicioBLL();
+        return s.Servicio_Lista(null, "");
+    }
+
+    [WebMethod]
+    public List<servicio> Lista_Servicios_A()
+    {
+        Hospital.ServicioBLL s = new Hospital.ServicioBLL();
+        return s.Servicio_Lista_A(null, "");
+    }
+
+    [WebMethod]
+    public List<sala> Lista_Salas(int Servicio)
+    {
+        Hospital.SalasBLL s = new Hospital.SalasBLL();
+        return s.Salas_Lista(null, Servicio);
+    }
+
+    [WebMethod]
+    public List<sala_A> Lista_Salas_A(int Servicio)
+    {
+        Hospital.SalasBLL s = new Hospital.SalasBLL();
+        return s.Salas_Lista_A(null, Servicio);
+    }
+
+    [WebMethod]
+    public long Insert_DatosAcompa(Acompa_Internacion a)
+    {
+        Hospital.InternacionesBLL i = new Hospital.InternacionesBLL();
+        try
+        {
+            i.Insert_Datos_Acompa(a);
+            return a.NroInternacion;
+        }
+        catch {
+            return -1;
+        }
+        
+    }
+
+    [WebMethod]
+    public Acompa_Internacion DatosAcompa_List(long Id)
+    {
+        Hospital.InternacionesBLL i = new Hospital.InternacionesBLL();
+        try
+        {
+            return i.DatosAcompa_List(Id);
+        }
+        catch
+        {
+            return null;
+        }
+
+    }
+
+
+    [WebMethod]
+    public List<cama> Lista_Camas(int Sala)
+    {
+        Hospital.CamaBLL c = new Hospital.CamaBLL();
+        return c.Cama_Lista(null, Sala);
+    }
+
+
+    [WebMethod]
+    public List<cama_A> Lista_Camas_A(int Sala)
+    {
+        Hospital.CamaBLL c = new Hospital.CamaBLL();
+        return c.Cama_Lista_A(null, Sala);
+    }
+
+    [WebMethod]
+    public List<cama_A> Lista_Camas_byId(int Cama)
+    {
+        Hospital.CamaBLL c = new Hospital.CamaBLL();
+        return c.Cama_Lista_A(Cama, 0);
+    }
+
+
+    [WebMethod]
+    public void ServicioActivo(int Id, string Estado)
+    {
+        bool Est = (Estado == "Activo") ? false : true;
+        Hospital.ServicioBLL s = new Hospital.ServicioBLL();
+        s.CambiarEstado(Id, Est);
+    }
+
+    [WebMethod]
+    public void ServicioGuardar(int Id, string Servicio)
+    {
+        Hospital.ServicioBLL s = new Hospital.ServicioBLL();
+        s.GuardarServicio(Id, Servicio);
+    }
+
+    [WebMethod]
+    public void SalaGuardar(int Id, string Sala, int Servicio)
+    {
+        Hospital.SalasBLL s = new Hospital.SalasBLL();
+        s.Guardar(Id, Sala, Servicio);
+    }
+
+    [WebMethod]
+    public void CamaGuardar(int Id, string Cama, int SalaId)
+    {
+        Hospital.CamaBLL s = new Hospital.CamaBLL();
+        s.Guardar(Id, Cama, SalaId);
+    }
+
+
+    [WebMethod]
+    public void EliminarServicio(int Id)
+    {
+        Hospital.ServicioBLL s = new Hospital.ServicioBLL();
+        s.ServicioEliminar(Id);
+    }
+
+
+
+    [WebMethod]
+    public void SalaActiva(int Id, string Estado)
+    {
+        bool Est = (Estado == "Activo") ? false : true;
+        Hospital.SalasBLL s = new Hospital.SalasBLL();
+        s.CambiarEstado(Id, Est);
+    }
+
+    [WebMethod]
+    public void CamaActiva(int Id, string Estado)
+    {
+        bool Est = (Estado == "Activo") ? false : true;
+        Hospital.CamaBLL s = new Hospital.CamaBLL();
+        s.CambiarEstado(Id, Est);
+    }
+
+    [WebMethod]
+    public void EliminarSala(int Id)
+    {
+        Hospital.SalasBLL s = new Hospital.SalasBLL();
+        s.Eliminar(Id);
+    }
+
+    [WebMethod]
+    public void EliminarCama(int Id)
+    {
+        Hospital.CamaBLL s = new Hospital.CamaBLL();
+        s.Eliminar(Id);
+    }
+
+    [WebMethod]
+    public List<hosppor> HospPorLista()
+    {
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.Hospitalizado_Por_Lista();        
+    }
+
+    [WebMethod]
+    public List<motivoIngreso> MotivoIngresoLista()
+    {
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.Motivo_Ingreso();
+    }
+
+    [WebMethod]
+    public List<motivoEgreso> MotivoEgresoLista()
+    {
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.Motivo_Egreso();
+    }
+
+    [WebMethod(EnableSession = true)]
+    public long Internacion_Guardar(int? Id, long NHC, string Fecha, int Servicio, int Sala, int Cama, string Telefono, string Diagnostico, int Hospitalizadopor, int Motivo, string Observacion, int Especialidad, int Medico)
+    {
+        long UsuarioId = ((usuarios)(Context.Session["Usuario"])).id;
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.Ingreso_Guardar(Id, NHC, Convert.ToDateTime(Fecha), Servicio, Sala, Cama, Telefono, Diagnostico, Hospitalizadopor, Motivo, Observacion, Especialidad, Medico, (int)UsuarioId);
+    }
+
+    [WebMethod(EnableSession = true)]
+    public int_egreso Egreso_Cargar(int Id)
+    {        
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.Egreso_Id(Id);
+    }
+
+
+    [WebMethod]
+    public int_ingreso Cargar_Internacion_Id(int Id)
+    {
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.Ingreso_Id(Id);
+    }
+    
+   [WebMethod]
+    public List<DiagnosticoICD10> CargarDiagnosticoICD10(string Codigo)
+    {
+        Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+        return h.DiagnosticoICD10(Codigo);
+    }
+
+   [WebMethod]
+   public List<DiagnosticoICD10Detalle> CargarDiagnosticoICD10Detalles(string Codigo, string ICD10)
+   {
+       Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+       return h.DiagnosticoICD10Detalles(Codigo, ICD10);
+   }
+
+   [WebMethod]
+   public List<buscarinternacion> BuscarInternaciones(string Fecha, string FechaHasta, int ServicioId, int SalaId, int CamaId, string NroDoc, string NroHC, string NombreYApllido)
+   {
+       int rNroDoc = 0;
+       long rNHC = 0;
+
+       if (NroDoc != "")
+       {
+           if (!int.TryParse(NroDoc, out rNroDoc))
+           {
+               throw new Exception("Verifique el Numero de Documento");
+           }
+       }
+
+       if (NroHC != "")
+       {
+           if (!long.TryParse(NroDoc, out rNHC))
+           {
+               throw new Exception("Verifique el Numero de CUIL");
+           }
+       }
+
+
+       Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+       return h.Buscar_Internacion(0, Convert.ToDateTime(Fecha), Convert.ToDateTime(FechaHasta), ServicioId, SalaId, CamaId, rNroDoc, rNHC, NombreYApllido);
+   }
+
+   [WebMethod(EnableSession = true)]
+   public void Egreso_Guardar(int Id, string DiagnosticoICD10Id, string DiagnosticoICD10DetalleId, int Motivo, string ObservacionFinal, string Operado, string OperadoFecha, int EgresoEspecialidadId, int EgresoMedicoId, string FechaEgreso)
+   {
+       Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+       long UsuarioId = ((usuarios)(Context.Session["Usuario"])).id;
+       bool operado = false;
+       bool Error = false;
+       if (Operado == "Si") { operado = true; }
+       if (Operado != "Si" && Operado != "No")
+       {
+           Error = true;
+       }
+
+       DateTime? FOperado = null;
+
+       if (OperadoFecha != "")
+       {           
+            FOperado = Convert.ToDateTime(OperadoFecha);
+       }
+
+       if (!Error)
+       {
+           h.Guardar_Egreso(Id, DiagnosticoICD10Id, DiagnosticoICD10DetalleId, Motivo, ObservacionFinal, operado, FOperado, EgresoEspecialidadId, EgresoMedicoId, (int)UsuarioId, Convert.ToDateTime(FechaEgreso));
+       }
+       else
+       {
+           throw new Exception("Verifique los campos");
+       }
+
+   }
+
+     [WebMethod(EnableSession = true)]
+   public void Aislar_Sala(int SalaId, string Motivo, string Estado)
+   {
+       bool Aislada = true;
+       if (Estado == "Disponible")
+       {
+           Aislada = false;
+       }
+       long UsuarioId = ((usuarios)(Context.Session["Usuario"])).id;
+       Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+       h.Aislar_Sala(SalaId, (int)UsuarioId, Motivo, Aislada);
+   }
+
+     [WebMethod(EnableSession = true)]
+   public estado_aislado Estado_Aislado_Sala(int Salaid)
+   {
+       Hospital.InternacionesBLL h = new Hospital.InternacionesBLL();
+       return h.Estado_Aislado_Sala(Salaid);
+   }
+    
+
+
+    [WebMethod]
+    public List<sala> Lista_Salas_S(int Servicio)
+    {
+        Hospital.SalasBLL s = new Hospital.SalasBLL();
+        return s.Salas_Lista(null, Servicio);
+    }
+
+    [WebMethod]
+    public List<servicio> Lista_ServiciosbyId(int Servicio)
+    {
+        Hospital.ServicioBLL s = new Hospital.ServicioBLL();
+        return s.Servicio_Lista(Servicio, "");
+    }
+
+    [WebMethod(EnableSession = true)]
+    public intresumen InternacionResumen(int IntId)
+    {
+        if (Session["Usuario"] != null)
+        {
+           Hospital.InternacionesBLL i = new Hospital.InternacionesBLL();
+           return i.InternacionResumen(IntId);    
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+
+}
+
+

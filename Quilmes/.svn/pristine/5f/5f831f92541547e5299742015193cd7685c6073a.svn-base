@@ -1,0 +1,476 @@
+﻿var objBusquedaLista;
+var total_esp;
+var Color_EnEspera = "rgb(255, 255, 204)";
+var Color_EnConsultorio = "rgb(204, 255, 204)";
+var Color_Atendido = "rgb(204, 255, 255)";
+var Color_Ausente = "rgb(255, 204, 204)";
+var BonoId = "";
+var MedicoId = "";
+var FechaBono = "";
+var Id = "";
+var Especialidad = "";
+var NHC = "";
+var Estado = "";
+
+setInterval(Buscar_PedidosTime, 30000);
+
+function GetQueryString() {
+    var querystring = location.search.replace('?', '').split('&');
+    // declare object
+    var queryObj = {};
+    // loop through each name-value pair and populate object
+    for (var i = 0; i < querystring.length; i++) {
+        // get name and value
+        var name = querystring[i].split('=')[0];
+        var value = querystring[i].split('=')[1];
+        // populate object
+        queryObj[name] = value;
+    }
+    return queryObj;
+}
+
+$(document).ready(function () {
+    $("#frm_Main").validate({
+        rules: {
+            'desde': { dateES: true },
+            'hasta': { dateES: true }
+        },
+        messages: {
+            'desde': { dateES: '' },
+            'hasta': { dateES: '' }
+        },
+        invalidHandler: function (e, validator) {
+            var list = validator.invalidElements();
+            //RemoveClass();
+            for (var i = 0; i < list.length; i++) {
+                var name_element = $(list[i]).attr("name");
+                $("#control" + name_element).addClass("error");
+            }
+        }
+
+    });
+    //alert(window.location);
+    var QueryObj = {};
+    QueryObj = GetQueryString();
+    if (QueryObj['FechaIni'] != null) {
+        $("#desde").val(QueryObj['FechaIni']);
+        $("#txtHoraIni").val(QueryObj['HoraIni']);
+        $("#hasta").val(QueryObj['FechaFin']);
+        $("#txtHoraFin").val(QueryObj['HoraFin']);
+        Buscar();
+    }
+    else {
+        $("#desde").val(FechaActual_2(-1));
+        $("#txtHoraIni").val("11:59");
+        $("#hasta").val(FechaActual());
+        $("#txtHoraFin").val("23:59");
+    }
+    $("#desde").datepicker();
+    $("#hasta").datepicker();
+    $("#txtHoraIni").mask("99:99", { placeholder: "-" });
+    $("#txtHoraFin").mask("99:99", { placeholder: "-" });
+    $("#desde").mask("99/99/9999", { placeholder: "-" });
+    $("#hasta").mask("99/99/9999", { placeholder: "-" });
+    List_Especialidades(1);
+    $(".opciones").hide();
+    Buscar();
+});
+
+
+function List_Especialidades(Todas) {
+    var json = JSON.stringify({"Todas": Todas});
+    $.ajax({
+        type: "POST",
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/Especialidades_Lista",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Especialidades_Cargado,
+        error: errores
+    });
+}
+
+
+function List_Especialidades_Cargado(Resultado) {
+
+    var Especialidad = Resultado.d;
+    $('#Esp1').empty();
+    $('#Esp2').empty();
+
+    total_esp = Especialidad.length;
+    var mitad1 = Math.ceil(total_esp / 2);
+    var i = 0;
+
+    for (i = 0; i < mitad1; i++) {
+        $('#Esp1').append('<label class="checkbox"><input id="CBE' + i + '" type="checkbox" value="' + Especialidad[i].Id + '">' + Especialidad[i].Especialidad + '</label>');
+
+        /*$('#cbo_Especialidad').append(
+        $('<option></option>').val(Especialidad[i].Id).html(Especialidad[i].Especialidad)
+        );*/
+    }
+
+    for (i = mitad1; i <= (total_esp - 1); i++) {
+        $('#Esp2').append('<label class="checkbox"><input id="CBE' + i + '" type="checkbox" value="' + Especialidad[i].Id + '">' + Especialidad[i].Especialidad + '</label>');
+        /*$('#cbo_Especialidad').append(
+        $('<option></option>').val(Especialidad[i].Id).html(Especialidad[i].Especialidad)
+        );*/
+    }
+
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+$("#btnActualizar").click(function () {
+    //alert('hOLA');
+    Buscar();
+  
+});
+
+function Buscar() {
+    var valid = $("#frm_Main").valid();
+    if (valid) {
+
+        objBusquedaLista = "";
+        var Especialidad = $("#chkEspecialidad").is(":checked");
+        if (Especialidad) {
+            for (var j = 0; j < total_esp; j++)
+                objBusquedaLista = objBusquedaLista + $('input[id=CBE' + j + ']').val() + ",";
+        }
+        else {
+            for (var j = 0; j < total_esp; j++) {
+                if ($('input[id=CBE' + j + ']').is(':checked')) {
+                    objBusquedaLista = objBusquedaLista + $('input[id=CBE' + j + ']:checked').val() + ",";
+                    //alert(objBusquedaLista);
+                }
+            }
+        }
+        Buscar_Pedidos();
+    }
+
+}
+
+function Buscar_Pedidos() {
+    var Especialidad = true;
+    var Estado = parseInt($("#cbo_Estado :selected").val());
+    var FechaIni = $('#desde').val() + " " + $("#txtHoraIni").val();
+    var FechaFin = $('#hasta').val() + " " + $("#txtHoraFin").val();
+    var json = JSON.stringify({ "FechaIni": FechaIni, "FechaFin": FechaFin, "Especialidad": Especialidad, "Apellido": $('#txtPaciente').val(), "objBusquedaLista": objBusquedaLista, "Estado": Estado });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/GuardiaListado",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Pedidos_Cargados,
+        error: errores
+    });
+
+}
+
+function Buscar_PedidosTime() {
+    //var Especialidad = $("#chkEspecialidad").is(":checked");
+    var Especialidad = true;
+    var Estado = parseInt($("#cbo_Estado :selected").val());
+    var FechaIni = $('#desde').val() + " " + $("#txtHoraIni").val();
+    var FechaFin = $('#hasta').val() + " " + $("#txtHoraFin").val();
+    var objBusquedaLista2 = "179,180,181,182,252,276,";
+    var json = JSON.stringify({ "FechaIni": FechaIni, "FechaFin": FechaFin, "Especialidad": Especialidad, "Apellido": $('#txtPaciente').val(), "objBusquedaLista": objBusquedaLista2, "Estado": Estado });
+    //alert(json);
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/GuardiaListado",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Pedidos_Cargados,
+        error: errores
+    });
+
+}
+
+function Pedidos_Cargados(Resultado) {
+    Pedidos = Resultado.d;
+    var Tabla_Datos = "";
+    var Color;
+    Tabla_Titulo = "<table id='TablaPedidos_div' class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th>Bono</th><th>Recep.</th><th>Atencion Urg</th><th>NHC</th><th>Afiliado</th><th>Medico Atendio</th><th>Especialidad</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>";
+    $.each(Pedidos, function (index, Pedido) {
+
+        switch (Pedido.ESTADO) {
+            case 'En Espera': Color = Color_EnEspera; break;
+            case 'En Consultorio': Color = Color_EnConsultorio; break;
+            case 'Atendido': Color = Color_Atendido; break;
+            case 'Finalizado': Color = Color_Atendido; break;
+            case 'Transito': Color = Color_Atendido; break;
+            case 'En Observación': Color = Color_EnConsultorio; break;
+            case 'Ausente': Color = Color_Ausente; break;
+            default: Color = "";
+        }
+        Tabla_Datos = Tabla_Datos + "<tr id='" + index + "'";
+        Tabla_Datos = Tabla_Datos + " style='background-color:" + Color + ";cursor:pointer' onclick=Ventana(" + index + ");";
+        Tabla_Datos = Tabla_Datos + "><td>" + Pedido.HORA + "</td><td>" + Pedido.RECEPCIONO + "</td><td>" + Pedido.ATENCION + "</td><td id='NHC'>" + Pedido.NHC + "</td><td id='Apellido'>" + Pedido.APELLIDO + "</td><td>" + Pedido.MEDICONOMBRE + "</td><td id='Especialidad'>" + Pedido.ESPECIALIDAD + "</td><td id='Estado'>" + Pedido.ESTADO + "</td><td>" + Pedido.FECHA + "</td><td id='EspId' style='display:none;'>" + Pedido.ESPECIALIDADID + "</td><td id='BonoId' style='display:none;'>" + Pedido.BONOID + "</td><td id='MedicoId' style='display:none;'>" + Pedido.MEDICOID + "</td><td id='Fecha' style='display:none;'>" + Pedido.FECHA + "</td><td id='Id' style='display:none;'>" + Pedido.ID + "</td></tr>";
+    });
+
+    Tabla_Fin = "</tbody></table>";
+    $("#TablaPedidos_div").html(Tabla_Titulo + Tabla_Datos + Tabla_Fin);
+
+}
+
+function Ventana(index) {
+    var Apellido = "";
+
+    $("#" + index + " > td#Apellido").each(function () {
+       Apellido = $(this).html();
+       $("#Paciente").html('Paciente: ' + Apellido);
+   });
+   $("#" + index + " > td#EspId").each(function () {
+       Especialidad = $(this).html();
+       LoadMedicosGuardiabyEsp(Especialidad);
+   });
+   $("#" + index + " > td#BonoId").each(function () {
+       BonoId = $(this).html();
+   });
+   $("#" + index + " > td#MedicoId").each(function () {
+       MedicoId = $(this).html();
+       
+   });
+   $("#" + index + " > td#Fecha").each(function () {
+       FechaBono = $(this).html();
+   });
+   $("#" + index + " > td#Id").each(function () {
+       Id = $(this).html();
+   });
+   $("#" + index + " > td#NHC").each(function () {
+       NHC = $(this).html();
+       Cargar_Paciente_NHC(NHC);
+   });
+   $("#" + index + " > td#Estado").each(function () {
+       Estado = $(this).html();
+       //alert(Estado);
+       switch (Estado) {
+           case 'En Consultorio': EnConsul_Botones(); break;
+           case 'Ausente': Ausente_Botones(); break;
+           case 'En Espera': EnEspera_Botones(); break;
+       }
+   });
+   LoadBoxes();
+   $("#myModal").modal({ backdrop: false, keyboard: false });
+    //$("#Paciente").html(Apellido);
+}
+
+function EnEspera_Botones() {
+    $(".opciones").hide();
+    $("#btnLlamar").show();
+}
+
+function Ausente_Botones() {
+    $(".opciones").show();
+    $("#btnLlamar").hide();
+    $("#btnVolverLlamar").hide();
+    $("#btnOcupar").hide();
+}
+
+$("#myModal").on('hide', function () {
+  window.location = "Listado.aspx?FechaIni=" + $('#desde').val() + "&FechaFin=" + $('#hasta').val() + "&HoraIni=" + $("#txtHoraIni").val()+"&HoraFin="+$("#txtHoraFin").val();
+});
+
+function LoadMedicosGuardiabyEsp(Especialidad) {
+    var json = JSON.stringify({ "Especialidad": Especialidad });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/MedicosGuardiabyEsp",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: LoadMedicosGuardiabyEsp_Cargados,
+        error: errores
+    });
+}
+
+function LoadMedicosGuardiabyEsp_Cargados(Resultado) {
+    var Lista = Resultado.d;
+    $("#cbo_Medicos").empty();
+    $.each(Lista, function (index, Medico) {
+        $("#cbo_Medicos").append($("<option></option>").val(Medico.Id).html(Medico.Medico));
+    });
+    if (MedicoId > 0) $("#cbo_Medicos").val(MedicoId);
+}
+
+function LoadBoxes() {
+    var json = JSON.stringify({ "FechaIni": $('#desde').val(), "HoraIni": $("#txtHoraIni").val(), "FechaFin": $('#hasta').val(), "HoraFin": $("#txtHoraFin").val()});
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/BoxesList",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: LoadBoxes_Cargados,
+        error: errores
+    });
+}
+
+function LoadBoxes_Cargados(Resultado) {
+    var Lista = Resultado.d;
+    $("#cbo_Boxes").empty();
+    $.each(Lista, function (index, Box) {
+        $("#cbo_Boxes").append($("<option></option>").val(Box.IDBOX).html(Box.NOMBREBOX));
+    });
+}
+
+$("#btnLlamar").click(function () {
+    var Box = $("#cbo_Boxes :selected").val();
+    var MedicoId = $("#cbo_Medicos :selected").val();
+    var json = JSON.stringify({ "BonoId": BonoId, "NHC": NHC, "MedicoId": MedicoId, "EspecialidadId": Especialidad, "FechaBono": FechaBono, "id": Id, "Box": Box, "MEgreso": 0, "Diagnostico": 0, "IC10": null, "Accidente": null, "MotivoAccidenteId": null, "Obs": "", "Espfinal": null });
+    //alert(json);
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/GuardiaSave",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Save_Cargado,
+        error: errores
+    });
+});
+
+
+function Save_Cargado(Resultado) {
+    Id = Resultado.d;
+    var Box = $("#cbo_Boxes :selected").val();
+    var MedicoId = $("#cbo_Medicos :selected").val();
+    var json = JSON.stringify({ "NHC": NHC, "Medico": MedicoId, "Box": Box });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Turnera/Turnera.asmx/SaveG",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success:GuardarHistorial,
+        error: errores
+    });
+}
+
+function GuardarHistorial() {
+  var MedicoId = $("#cbo_Medicos :selected").val();
+    var json = JSON.stringify({ "Texto": "Llama a " + $("#Paciente").html() , "MedicoId": MedicoId, "NHC": NHC, "Protocolo": 0 });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/Historial",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ActiveBotones,
+        error: errores
+    });
+}
+
+function ActiveBotones() {
+    //alert(Id);
+    $("#btnLlamar").hide();
+    $(".opciones").show();
+    Buscar_Pedidos();
+}
+
+function EnConsul_Botones() {
+    $("#btnLlamar").hide();
+    $(".opciones").show();
+}
+
+function imgErrorPaciente(image) {
+    image.onerror = "";
+    image.src = "../img/silueta.jpg";
+    return true;
+}
+
+function Cargar_Paciente_NHC(NHC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_NHC_Cargado,
+        error: errores
+    });
+}
+
+
+function Cargar_Paciente_NHC_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    $.each(Paciente, function (index, paciente) {
+
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+    });
+}
+
+
+$("#btnAusente").click(function () {
+    var json = JSON.stringify({ "Id": Id });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/GuardiaAusente",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GuardarHistorialAusente,
+        error: errores
+    });
+});
+
+function GuardarHistorialAusente() {
+    var MedicoId = $("#cbo_Medicos :selected").val();
+    var json = JSON.stringify({ "Texto": $("#Paciente").html() + " Ausente", "MedicoId": MedicoId, "NHC": NHC, "Protocolo": 0 });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/Historial",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ActiveBotones,
+        error: errores
+    });
+}
+
+$("#btnOcupar").click(function () {
+    var Box = $("#cbo_Boxes :selected").val();
+    var json = JSON.stringify({ "Box": Box  , "Id": Id });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/GuardiaOcuparBox",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ActiveBotones,
+        error: errores
+    });
+
+});
+
+$("#btnTerminar").click(function () {
+    var Medico = $("#cbo_Medicos :selected").val();
+    window.location = "CargarAtencion.aspx?Id=" + Id + "&Medico=" + Medico + "&Especialidad=" + Especialidad;
+
+});
+
+$("#btnVerHC").click(function () {
+    window.location = "../HistoriaClinica/HistoriaClinica.aspx?NHC=" + NHC;
+
+});

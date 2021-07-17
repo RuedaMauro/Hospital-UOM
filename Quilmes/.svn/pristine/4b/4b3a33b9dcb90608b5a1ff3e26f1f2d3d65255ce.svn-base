@@ -1,0 +1,687 @@
+﻿var objBusquedaLista;
+var total_esp;
+var Color_EnEspera = "rgb(255, 255, 204)";
+var Color_EnConsultorio = "rgb(204, 255, 204)";
+var Color_Atendido = "rgb(204, 255, 255)";
+var Color_Ausente = "rgb(255, 204, 204)";
+var BonoId = "";
+var MedicoId = "";
+var FechaBono = "";
+var Id = "";
+var Especialidad = "";
+var NHC = "";
+var Estado = "";
+var objPractica = Array();
+var objMedicamento = Array();
+var Total = -1;
+var Total_m = -1;
+var Editando = 0;
+var EditandoPos = 0;
+var objPracticas = new Array();
+var objMedicamentos = new Array();
+var IdPedido;
+
+
+
+$(document).ready(function () {
+    $("#frm_Main").validate({
+        rules: {
+            'desde': { dateES: true }
+        },
+        messages: {
+            'desde': { dateES: '' }
+        },
+        invalidHandler: function (e, validator) {
+            var list = validator.invalidElements();
+            //RemoveClass();
+            for (var i = 0; i < list.length; i++) {
+                var name_element = $(list[i]).attr("name");
+                $("#control" + name_element).addClass("error");
+            }
+        }
+
+    });
+    $("#frm_Cantidad").validate({
+        rules: {
+            'cantidad': { required: true, number: true, range: [0, 99] }
+        },
+        messages: {
+            'cantidad': { required: '', number: '', range: '' }
+        },
+        invalidHandler: function (e, validator) {
+            var list = validator.invalidElements();
+            //RemoveClass();
+            for (var i = 0; i < list.length; i++) {
+                var name_element = $(list[i]).attr("name");
+                $("#control" + name_element).addClass("error");
+            }
+        }
+    });
+    $("#frm_Cantidad_m").validate({
+        rules: {
+            'cantidadm': { required: true, number: true, range: [0, 99] }
+        },
+        messages: {
+            'cantidadm': { required: '', number: '', range: '' }
+        },
+        invalidHandler: function (e, validator) {
+            var list = validator.invalidElements();
+            //RemoveClass();
+            for (var i = 0; i < list.length; i++) {
+                var name_element = $(list[i]).attr("name");
+                $("#control" + name_element).addClass("error");
+            }
+        }
+    });
+    $("#desde").datepicker();
+    $("#txtHoraIni").mask("99:99", { placeholder: "-" });
+    $("#desde").mask("99/99/9999", { placeholder: "-" });
+    $("#desde").val(FechaActual_2(-1));
+    $("#txtHoraIni").val("11:59");
+    $("#btnPrint_").hide();
+    $("#btnPrint").hide();
+    $("#btnAgregarPractica").hide();
+    $("#btnAgregarMedicamento").hide();
+    Buscar_Pedidos();
+});
+
+//setInterval(Buscar_Pedidos(), 30000);
+
+function imgErrorPaciente(image) {
+    image.onerror = "";
+    image.src = "../img/silueta.jpg";
+    return true;
+}
+
+function LoadPlantillaMedbyId() {
+    var json = JSON.stringify({ "GuardiaId": Id });
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/List_Medicamentos_byId",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Medicamentos_byId,
+        error: errores
+    });
+}
+
+function List_Medicamentos_byId(Resultado) {
+    var Lista = Resultado.d;
+    if (Lista.length > 0) {
+        var Detalles = Resultado.d;
+        var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Medicamento</th><th>Monodroga</th><th>Cantidad</th></tr></thead><tbody>";
+        var Contenido = "";
+        var i = 0;
+        $.each(Detalles, function (index, Detalle) {
+            Contenido = Contenido + "<tr><td><a id='Editarm" + i + "' onclick='Editarm(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Medicamento'><i class='icon-edit'></i></a><a id='Elminarm" + i + "'onclick='Elminarm(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Medicamento'><i class='icon-remove-circle icon-white'></i></a></td><td> " + Detalle.Medicamento + " </td><td> " + Detalle.Monodroga + " </td><td> " + Detalle.Cantidad + " </td></tr>";
+            objMedicamentos[i] = Detalle;
+            //objMedicamentos2[i] = Detalle;
+            objMedicamentos[i].Estado = 1;
+            Total_m = Total_m + 1;
+            i = i + 1;
+        });
+        var Pie = "</tbody></table>";
+        $("#Tabla_Medicamentos").html(Encabezado + Contenido + Pie);
+    }
+    else {
+        LoadPlantilla();
+    }
+}
+
+function LoadPlantilla() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/List_Plantilla_Med",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: LoadPlantilla_Cargado,
+        error: errores
+    });
+}
+
+function LoadPlantilla_Cargado(Resultado) {
+    var Detalles = Resultado.d;
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Medicamento</th><th>Monodroga</th><th>Cantidad</th></tr></thead><tbody>";
+    var Contenido = "";
+    var i = 0;
+    $.each(Detalles, function (index, Detalle) {
+        Contenido = Contenido + "<tr><td><a id='Editarm" + i + "' onclick='Editarm(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Medicamento'><i class='icon-edit'></i></a><a id='Elminarm" + i + "'onclick='Elminarm(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Medicamento'><i class='icon-remove-circle icon-white'></i></a></td><td> " + Detalle.Medicamento + " </td><td> " + Detalle.Monodroga + " </td><td> " + Detalle.Cantidad + " </td></tr>";
+        objMedicamentos[i] = Detalle;
+        //objMedicamentos2[i] = Detalle;
+        objMedicamentos[i].Estado = 1;
+        Total_m = Total_m + 1;
+        i = i + 1;
+    });
+    var Pie = "</tbody></table>";
+    $("#Tabla_Medicamentos").html(Encabezado + Contenido + Pie);
+}
+//////////////////////////////////////////////////
+
+function LoadPlantillaPrac() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/List_Plantilla_Prac",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: LoadPlantillaPrac_Cargado,
+        error: errores
+    });
+}
+
+function LoadPlantillaPrac_Cargado(Resultado) {
+    var Detalles = Resultado.d;
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Codigo</th><th>Practica</th><th>Cantidad</th></tr></thead><tbody>";
+    var Contenido = "";
+    var i = 0;
+    $.each(Detalles, function (index, Detalle) {
+        Contenido = Contenido + "<tr><td><a id='Editar" + i + "' onclick='Editar(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Practica'><i class='icon-edit'></i></a><a id='Elminar" + i + "'onclick='Eliminar(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Practica'><i class='icon-remove-circle icon-white'></i></a></td><td> " + Detalle.Codigo + " </td><td> " + Detalle.Descripcion + " </td><td> " + Detalle.Cantidad + " </td></tr>";
+        objPracticas[i] = Detalle;
+        //objMedicamentos2[i] = Detalle;
+        objPracticas[i].Estado = 1;
+        Total = Total + 1;
+        i = i + 1;
+    });
+    var Pie = "</tbody></table>";
+    $("#Tabla_Practicas").html(Encabezado + Contenido + Pie);
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+$("#btnActualizar").click(function () {
+    var valid = $("#frm_Main").valid();
+    if (valid) {
+        Buscar_Pedidos();
+    }
+});
+
+function Buscar_Pedidos() {
+    var FechaIni = $('#desde').val() + " " + $("#txtHoraIni").val();
+    var json = JSON.stringify({ "FechaIni": FechaIni});
+    //alert(json);
+    $.ajax({
+        type: "POST",
+        url: "../Json/Guardia/Guardia.asmx/EnfermeriaList",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Pedidos_Cargados,
+        error: errores
+    });
+
+}
+
+function Pedidos_Cargados(Resultado) {
+    Pedidos = Resultado.d;
+    var Tabla_Datos = "";
+    var Color;
+    var Ped = "";
+    Tabla_Titulo = "<table id='TablaPedidos_div' class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th>Fecha</th><th>NHC</th><th>Afiliado</th><th>Box</th><th>Medico</th><th>Pedido</th></tr></thead><tbody>";
+    $.each(Pedidos, function (index, Pedido) {
+        if (Pedido.Box == "ENF") Color = Color_Atendido;
+        else Color = Color_EnEspera;
+        Tabla_Datos = Tabla_Datos + "<tr id='" + index + "'";
+        Tabla_Datos = Tabla_Datos + " style='background-color:" + Color + ";cursor:pointer' onclick=Ventana(" + index + ");";
+        if (Pedido.Indicaciones != null) Ped = Pedido.Indicaciones;
+        else Ped = Pedido.Practica;
+        Tabla_Datos = Tabla_Datos + "><td>" + Pedido.Fecha + "</td><td id='NHC'>" + Pedido.NHC + "</td><td>" + Pedido.Afiliado + "</td><td id='NHC'>" + Pedido.Box + "</td><td id='Apellido'>" + Pedido.Medico + "</td><td>" + Ped + "</td><td id='Id' style='display:none;'>" + Pedido.IdGuardia + "</td></tr>"; 
+    });
+
+    Tabla_Fin = "</tbody></table>";
+    $("#TablaPedidos_div").html(Tabla_Titulo + Tabla_Datos + Tabla_Fin);
+
+}
+
+function Ventana(index) {
+
+
+    $("#" + index + " > td#Id").each(function () {
+        Id = $(this).html();
+        objPractica = Array();
+        objMedicamento = Array();
+        Total = -1;
+        Total_m = -1;
+        Editando = 0;
+        EditandoPos = 0;
+        objPracticas = new Array();
+        objMedicamentos = new Array();
+        LoadPlantillaMedbyId();
+        LoadPlantillaPracbyId();
+    });
+    $("#" + index + " > td#NHC").each(function () {
+        NHC = $(this).html();
+        Cargar_Paciente_NHC(NHC);
+    });
+    $("#myModal").modal({keyboard: false, backdrop: false});
+    //$("#Paciente").html(Apellido);
+}
+
+
+function Cargar_Paciente_NHC(NHC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_NHC_Cargado,
+        error: errores
+    });
+}
+
+
+function Cargar_Paciente_NHC_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    $.each(Paciente, function (index, paciente) {
+
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+    });
+}
+
+$("#btnAgregarPractica").click(function () {
+    var valid = $("#frm_Cantidad").valid();
+    if (valid) {
+        Codigo = $("#CargadoCodigo").html();
+        Nombre = $("#CargadoPractica").html();
+        Cantidad = parseInt($("#cantidad").val());
+        var Estado = 1;
+        var Cual = Total;
+        if (Editando == 1) {
+            Cual = EditandoPos;
+        }
+        else {
+            Total = Total + 1;
+            Cual = Total;
+        }
+        objPractica = {};
+        objPractica.Codigo = Codigo;
+        objPractica.Cantidad = Cantidad;
+        objPractica.Estado = Estado;
+        objPractica.Descripcion = Nombre;
+        objPracticas[Cual] = objPractica;
+        RenderizarTabla();
+        Editando = 0;
+        EditandoPos = -1;
+        LimpiarCampos();
+        
+        //alert(Total);
+    }
+});
+
+function LimpiarCampos() {
+    $("#CargadoCodigo").empty();
+    $("#CargadoPractica").empty();
+    $("#cantidad").empty();
+    $("#btnAgregarPractica").hide();
+}
+
+$("#btnCancelarPractica").click(function () {
+    Editando = 0;
+    EditandoPos = -1;
+    $("#btnAgregarPractica").html("<i class='icon-plus-sign icon-white'></i> Agregar");
+    $("#btnCancelarPractica").html("<i class='icon-remove-circle icon-white'></i> Cancelar");
+    LimpiarCampos();
+});
+
+function RenderizarTabla() {
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Codigo</th><th>Practica</th><th>Cantidad</th><tr></thead><tbody>";
+    var Contenido = "";
+
+    for (var i = 0; i <= Total; i++) {
+        //Estado = 0 es Borrado
+        if (objPracticas[i].Estado == 1) {
+            Contenido = Contenido + "<tr><td><a id='Editar" + i + "' onclick='Editar(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Practica'><i class='icon-edit'></i></a><a id='Elminar" + i + "'onclick='Eliminar(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Practica'><i class='icon-remove-circle icon-white'></i></a></td><td> " + objPracticas[i].Codigo + " </td><td> " + objPracticas[i].Descripcion + " </td><td> " + objPracticas[i].Cantidad + " </td></tr>";
+        }
+
+    }
+
+    var Pie = "</tbody></table>";
+    $("#Tabla_Practicas").html(Encabezado + Contenido + Pie);
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+}
+
+function Editar(Nro) {
+    Editando = 1;
+    EditandoPos = Nro;
+    $("#cantidad").val(objPracticas[Nro].Cantidad);
+    $("#CargadoPractica").html(objPracticas[Nro].Descripcion);
+    $("#CargadoCodigo").html(objPracticas[Nro].Codigo);
+    $("#btnAgregarPractica").html("<i class='icon-plus-sign icon-white'></i> Aceptar Cambio");
+    $("#btnCancelarPractica").html("<i class='icon-remove-circle icon-white'></i> Cancelar Cambio");
+    $("#btnAgregarPractica").show();
+}
+
+function Eliminar(Nro) {
+    objPracticas[Nro].Estado = 0;
+    RenderizarTabla();
+    objPracticas = $.grep(objPracticas, function (value) {
+        return value.Estado != 0;
+    });
+    Total = Total - 1;
+}
+
+function Existe(Algo) {
+    for (var i = 0; i <= Total; i++) {
+        if (objPracticas[i].Codigo == Algo && objPracticas[i].Estado == 1 && Editando != 1) {
+            alert("Ya ha cargado la Practica Nro: " + Algo);
+            LimpiarCampos();
+            $("#cantidad").focus();
+            return true;
+        }
+    }
+    return false;
+}
+
+////////////////////////////
+
+$("#btnAgregarMedicamento").click(function () {
+    var valid = $("#frm_Cantidad_m").valid();
+    if (valid) {
+        Codigo = $("#CargadoCodigom").html();
+        Monodroga = $("#CargadoMonodroga").html();
+        Medicamento = $("#CargadoMedicamento").html();
+        Cantidad = parseInt($("#cantidadm").val());
+        var Estado = 1;
+        var Cual = Total_m;
+        if (Editando == 1) {
+            Cual = EditandoPos;
+        }
+        else {
+            Total_m = Total_m + 1;
+            Cual = Total_m;
+        }
+        objMedicamento = {};
+        objMedicamento.Id = Codigo;
+        objMedicamento.Cantidad = Cantidad;
+        objMedicamento.Monodroga = Monodroga;
+        objMedicamento.Estado = Estado;
+        objMedicamento.Medicamento = Medicamento;
+        objMedicamentos[Cual] = objMedicamento;
+        //objMedicamentos[Cual] = objMedicamento;
+        RenderizarTabla_m();
+        Editando = 0;
+        EditandoPos = -1;
+        LimpiarCampos_m();
+        //alert(Total);
+    }
+});
+
+function LimpiarCampos_m() {
+    $("#CargadoCodigom").empty();
+    $("#CargadoMedicamento").empty();
+    $("#CargadoMonodroga").empty();
+    $("#cantidadm").empty();
+    $("#btnAgregarMedicamento").hide();
+}
+
+$("#btnCancelarMedicamento").click(function () {
+    Editando = 0;
+    EditandoPos = -1;
+    $("#btnAgregarMedicamento").html("<i class='icon-plus-sign icon-white'></i> Agregar");
+    $("#btnCancelarMedicamento").html("<i class='icon-remove-circle icon-white'></i> Cancelar");
+    LimpiarCampos_m();
+});
+
+function RenderizarTabla_m() {
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Medicacion</th><th>Monodroga</th><th>Cantidad</th><tr></thead><tbody>";
+    var Contenido = "";
+
+    for (var i = 0; i <= Total_m; i++) {
+        //Estado = 0 es Borrado
+        if (objMedicamentos[i].Estado == 1) {
+            Contenido = Contenido + "<tr><td><a id='Editarm" + i + "' onclick='Editarm(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Medicacion'><i class='icon-edit'></i></a><a id='Elminarm" + i + "'onclick='Elminarm(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Medicacion'><i class='icon-remove-circle icon-white'></i></a></td><td> " + objMedicamentos[i].Medicamento + " </td><td> " + objMedicamentos[i].Monodroga + " </td><td> " + objMedicamentos[i].Cantidad + " </td></tr>";
+        }
+
+    }
+
+    var Pie = "</tbody></table>";
+    $("#Tabla_Medicamentos").html(Encabezado + Contenido + Pie);
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+}
+
+function Editarm(Nro) {
+    Editando = 1;
+    EditandoPos = Nro;
+    $("#cantidadm").val(objMedicamentos[Nro].Cantidad);
+    $("#CargadoMonodroga").html(objMedicamentos[Nro].Monodroga);
+    $("#CargadoMedicamento").html(objMedicamentos[Nro].Medicamento);
+    $("#CargadoCodigom").html(objMedicamentos[Nro].Id); 
+    $("#btnAgregarMedicamento").html("<i class='icon-plus-sign icon-white'></i> Aceptar Cambio");
+    $("#btnCancelarMedicamento").html("<i class='icon-remove-circle icon-white'></i> Cancelar Cambio");
+    $("#btnAgregarMedicamento").show();
+}
+
+function Elminarm(Nro) {
+    objMedicamentos[Nro].Estado = 0;
+    RenderizarTabla_m();
+    objMedicamentos = $.grep(objMedicamentos, function (value) {
+        return value.Estado != 0;
+    });
+    Total_m = Total_m - 1;
+}
+
+function Existem(Algo) {
+    for (var i = 0; i <= Total_m; i++) {
+        if (objMedicamentos[i].Id == Algo && objMedicamentos[i].Estado == 1 && Editando != 1) {
+            alert("Ya ha cargado el Medicamento Nro: " + Algo);
+            LimpiarCampos_m();
+            $("#cantidadm").focus();
+            return true;
+        }
+    }
+    return false;
+}
+
+$("#btnMedicamentos").click(function () {
+    if (objMedicamentos.length > 0) {
+        DeleteMedicamentos();
+    }
+    else {
+        alert('Ingrese Medicamentos');
+    }
+
+});
+
+function DeleteMedicamentos() {
+    var json = JSON.stringify({ "Id": Id});
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/DeleteMedicamentos",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Insert_Pedido,
+        error: errores
+    });
+}
+
+function Insert_Pedido() {
+    var f = {};
+    f.Servicio_Id = "100";
+    f.Usuario_Id = "";
+    f.Pedido_Id = '';
+    f.NHC = $("#CargadoNHC").html();
+    f.GuardiaId = Id;
+    var json = JSON.stringify({ "f": f });
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/Insert_Pedido_Cab",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Insert_Pedido_Cab_Cargado,
+        error: errores
+    });
+
+}
+
+function Insert_Pedido_Cab_Cargado(Resultado) {
+    IdPedido = Resultado.d;
+    var json = JSON.stringify({ "PedidoId": IdPedido, "GuardiaId": Id, "objMedicamentos": objMedicamentos });
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/Insert_Pedido_Det",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: PedidoCargado,
+        error: errores
+    });
+}
+
+function PedidoCargado(Resultado) {
+    var json = JSON.stringify({ "PedidoId": IdPedido, "GuardiaId": Id, "objMedicamentos": objMedicamentos });
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/Insert_Guardia_Medicamentos",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GuardiaMedicamentosCargado,
+        error: errores
+    });
+}
+
+function GuardiaMedicamentosCargado() {
+    alert('Medicamentos Cargados Correctamente');
+    $("#btnPrint_").show();
+    $("#btnPrint").show();
+}
+
+$("#btnPracticas").click(function () {
+    if (objPracticas.length > 0) {
+        Delete_Guardia_Practicas();
+    }
+    else {
+        alert('Ingrese Practicas');
+    }
+
+});
+
+function Insert_Guardia_Practicas() {
+    var json = JSON.stringify({ "GuardiaId": Id, "objPracticas": objPracticas });
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/Insert_Guardia_Practicas",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GuardiaPracticasCargado,
+        error: errores
+    });
+}
+
+function GuardiaPracticasCargado() {
+    alert('Practicas Cargadas Correctamente');
+    $("#btnPrint_").show();
+    $("#btnPrint").show();
+} 
+
+function Delete_Guardia_Practicas() {
+    var json = JSON.stringify({ "GuardiaId": Id});
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/Delete_Guardia_Practicas",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Insert_Guardia_Practicas,
+        error: errores
+    });
+}
+
+function LoadPlantillaPracbyId() {
+    var json = JSON.stringify({ "GuardiaId": Id });
+    $.ajax({
+        data: json,
+        url: "../Json/Guardia/Guardia.asmx/List_Practicas_byId",
+        type: "POST",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: List_Practicas_byId,
+        error: errores
+    });
+}
+
+function List_Practicas_byId(Resultado) {
+    var Lista = Resultado.d;
+    if (Lista.length > 0) {
+        var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Codigo</th><th>Practica</th><th>Cantidad</th></tr></thead><tbody>";
+        var Contenido = "";
+        var i = 0;
+        $.each(Lista, function (index, Detalle) {
+            Contenido = Contenido + "<tr><td><a id='Editar" + i + "' onclick='Editar(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Practica'><i class='icon-edit'></i></a><a id='Elminar" + i + "'onclick='Eliminar(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Practica'><i class='icon-remove-circle icon-white'></i></a></td><td> " + Detalle.Codigo + " </td><td> " + Detalle.Descripcion + " </td><td> " + Detalle.Cantidad + " </td></tr>";
+            objPracticas[i] = Detalle;
+            //objMedicamentos2[i] = Detalle;
+            objPracticas[i].Estado = 1;
+            Total = Total + 1;
+            i = i + 1;
+        });
+        var Pie = "</tbody></table>";
+        $("#Tabla_Practicas").html(Encabezado + Contenido + Pie);
+    }
+    else {
+        LoadPlantillaPrac(); //Si no existen practicas cargadas para ese IDGUardia, cargo la plantilla.
+    }
+}
+
+$("#btnPrint_").click(function () {
+    $.fancybox(
+        {
+            'autoDimensions': false,
+            'href': '../Impresiones/ImpresionGuardiaPracMed.aspx?Id=' + Id, 
+            'width': '75%',
+            'height': '75%',
+            'autoScale': false,
+            'transitionIn': 'none',
+            'transitionOut': 'none',
+            'type': 'iframe',
+            'hideOnOverlayClick': false,
+            'enableEscapeButton': false
+        });
+    });
+
+    $("#btnPrint").click(function () {
+        $.fancybox(
+        {
+            'autoDimensions': false,
+            'href': '../Impresiones/ImpresionGuardiaPracMed.aspx?Id=' + Id,
+            'width': '75%',
+            'height': '75%',
+            'autoScale': false,
+            'transitionIn': 'none',
+            'transitionOut': 'none',
+            'type': 'iframe',
+            'hideOnOverlayClick': false,
+            'enableEscapeButton': false
+        });
+    });
+
+    $("#myModal").on('hidden', function () {
+        window.location = "PedidosEnfermeria.aspx";
+    });

@@ -1,0 +1,37 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for LocalidadesBLL
+/// </summary>
+namespace Hospital
+{
+    public class LocalidadesBLL
+    {
+        public LocalidadesBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        public List<localidades> Localidades_Lista()
+        {
+            LocalidadesDALTableAdapters.H2_LocalidadesTableAdapter adapter = new LocalidadesDALTableAdapters.H2_LocalidadesTableAdapter();
+            LocalidadesDAL.H2_LocalidadesDataTable aTable = adapter.GetData();
+            
+            List<localidades> lista = new List<localidades>();
+            foreach (LocalidadesDAL.H2_LocalidadesRow row in aTable.Rows)
+            {
+                localidades l = new localidades();
+                l.id = row.Id;
+                l.localidad = row.Descripcion;
+                lista.Add(l);
+            }
+            return lista;
+        }
+
+    }
+}

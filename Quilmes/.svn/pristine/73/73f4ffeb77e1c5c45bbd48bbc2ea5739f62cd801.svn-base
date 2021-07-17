@@ -1,0 +1,70 @@
+﻿$(document).ready(function () {
+    $("#txtFechaInicio").mask("99/99/9999", { placeholder: "-" });
+    $("#txtFechaFin").mask("99/99/9999", { placeholder: "-" });
+
+    $("#txtFechaInicioEntregado").mask("99/99/9999", { placeholder: "-" });
+    $("#txtFechaFinEntregado").mask("99/99/9999", { placeholder: "-" });
+
+    $("#txtNHC").mask("9999999999?9", { placeholder: "-" });
+
+    $("#txtFechaInicio").datepicker();
+    $("#txtFechaFin").datepicker();
+    $("#txtFechaInicioEntregado").datepicker();
+    $("#txtFechaFinEntregado").datepicker();
+
+});
+
+$("#btnBuscar").click(function () {
+    BuscarRecetas();
+
+});
+
+
+function BuscarRecetas() {
+
+    var json = JSON.stringify({
+        "NHC": $("#txtNHC").val(),
+        "paciente": $("#txtAfiliado").val(),
+        "Ingresodesde": $("#txtFechaInicio").val(),
+        "Ingresohata": $("#txtFechaFin").val(),
+        "Egresodesde": $("#txtFechaInicioEntregado").val(),
+        "Egresohasta": $("#txtFechaFinEntregado").val()
+    });
+
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/BuscarReceta",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: BuscarRecetas_Cargado,
+        error: errores
+    });
+}
+
+function BuscarRecetas_Cargado(Resultado) {
+    var Busquedas = Resultado.d;
+    var PError = false;
+    var Datos = "";
+    $.each(Busquedas, function (index, busqueda) {
+
+        Datos = Datos + "<tr ";
+        Datos = Datos + " onclick='javascript:Cargar_Recetas(" + busqueda.protocolo + ");' >";
+        Datos = Datos + "<td>" + busqueda.protocolo + "</td>";
+        Datos = Datos + "<td>" + busqueda.fechainicio + "</td>";
+        Datos = Datos + "<td>" + busqueda.NHC + "</td>";
+        Datos = Datos + "<td>" + busqueda.apellido + "</td></tr>";
+    });
+
+    $('#TablaResultado').html(Datos);
+}
+
+function Cargar_Recetas(Protocolo) {
+    self.location = "Receta.aspx?Protocolo=" + Protocolo;
+}
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}

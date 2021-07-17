@@ -1,0 +1,84 @@
+﻿
+function Cargar_Dias_Atencion(MedicoId) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DiasAtencion.asmx/Dias_Atencion_Lista_Medicos_Vista",
+        data: '{MedicoId: "' + MedicoId + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Dias_Atencion_Vista_Cargadas,
+        error: errores
+    });
+}
+
+function Dias_Atencion_Vista_Cargadas(Resultado) {
+
+    var DiasAtencion = Resultado.d;
+    var ActualEspecialidad = "";
+    var Encabezado = "";
+    var Resultado = "";
+    var Cuerpo = "";
+    var Cab = "";
+    var Inicio = "1";
+
+
+
+    $.each(DiasAtencion, function (index, dias) {
+        if (ActualEspecialidad != dias.Especialidad) {
+            $("#NombreMedico").html(dias.Medico);
+            ActualEspecialidad = dias.Especialidad;
+            if (Inicio == "1") {
+                Inicio = "0";
+                Encabezado = "<h5>" + ActualEspecialidad + "</h5>";
+                Resultado = Resultado + Encabezado;
+                Cab = "<table id='TablaTurnos' class='table table-condensed table-bordered table-striped' style='width: 100;'><thead><tr><th>Día</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Consultorio</th></tr></thead><tbody>";
+                Resultado = Resultado + Cab;
+            }
+            else {
+                Resultado = Resultado + Cuerpo;
+                Resultado = Resultado + "</tbody></table></br>";
+                Inicio = "1";
+                Cuerpo = "";
+
+                Encabezado = "<h5>" + ActualEspecialidad + "</h5>";
+                Resultado = Resultado + Encabezado;
+                Cab = "<table id='TablaTurnos' class='table table-condensed table-bordered table-striped' style='width: 100;'><thead><tr><th>Día</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Consultorio</th></tr></thead><tbody>";
+                Resultado = Resultado + Cab;
+            }
+        }
+
+        Cuerpo = Cuerpo + "<tr><td>" + dias.Dia + "</td><td>" + dias.Inicio + "</td><td>" + dias.Fin + "</td><td>" + dias.Duracion + "</td><td>" + dias.Consultorio + "</td></tr>"
+
+    });
+    Resultado = Resultado + Cuerpo;
+    Resultado = Resultado + "</tbody></table></br>";
+    $("#Dias").html(Resultado);
+}
+
+
+$(document).ready(function () {
+
+        
+        var GET = {};
+        var MedicoId = "";
+
+            document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
+                function decode(s) {
+                    return decodeURIComponent(s.split("+").join(" "));
+                }
+
+                GET[decode(arguments[1])] = decode(arguments[2]);
+           });
+
+            if (GET["MedicoId"] != "") {
+        MedicoId = GET["MedicoId"];
+        Cargar_Dias_Atencion(MedicoId);
+        
+    }
+});
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}

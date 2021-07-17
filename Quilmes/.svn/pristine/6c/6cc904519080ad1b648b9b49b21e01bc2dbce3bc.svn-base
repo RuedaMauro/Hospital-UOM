@@ -1,0 +1,101 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Services;
+using System.Web.Script.Services;
+using HospitalBLL.Entities;
+
+/// <summary>
+/// Summary description for DiasAtencionEdicion
+/// </summary>
+[WebService(Namespace = "http://tempuri.org/")]
+[WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
+// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
+// [System.Web.Script.Services.ScriptService]
+[ScriptService]
+public class DiasAtencionEdicion : System.Web.Services.WebService {
+
+    public DiasAtencionEdicion() {
+
+        //Uncomment the following line if using designed components 
+        //InitializeComponent(); 
+    }
+
+
+    [WebMethod]
+    public List<MedicoEspecialidad> Especialidad_Atencion_Medico(int MedicoId)
+    {
+        Hospital.MedicosBLL Especialidades = new Hospital.MedicosBLL();
+        return Especialidades.MedicoEspecialidadesporMedicoId(MedicoId);
+    }
+
+    [WebMethod]
+    public List<MedicoEspecialidad> Especialidades_que_Atiende_el_Medico(int MedicoId)
+    {
+        Hospital.MedicosBLL Especialidades = new Hospital.MedicosBLL();
+        return Especialidades.Especialidades_que_Atiende_el_Medico(MedicoId);
+    }
+    
+
+    [WebMethod]
+    public List<diasdeatencion_Vista> Dias_Atencion_Lista(int MedicoId, int Especialidad)
+    {
+        Hospital.DiasdeAtencionBLL DiaAtencion = new Hospital.DiasdeAtencionBLL();
+        return DiaAtencion.DiasAtencionVistaMedi_Esp(MedicoId, Especialidad);
+    }
+
+    [WebMethod]
+    public void Eliminar_Dia_Id(int Id)
+    {
+        Hospital.DiasdeAtencionBLL DiaAtencion = new Hospital.DiasdeAtencionBLL();
+        DiaAtencion.Eliminar_Id(Id);
+    }
+
+    [WebMethod]
+    public List<diasdeatencion_Vista> Dias_Atencion_Id(int Id)
+    {
+        Hospital.DiasdeAtencionBLL DiaAtencion = new Hospital.DiasdeAtencionBLL();
+        return DiaAtencion.DiasAtencionVistaMedi_Esp_Id(Id);
+    }
+
+    [WebMethod]
+    public int Guardar_Dias_Atencion(int id, int medicoId, int diaDeAtencion, string horaInicio, string horaFin, int EspecialidadId, int Duracion, int ConsultorioId)
+    {
+        Time lhoraInicio = null;
+        Time lhoraFin = null;
+
+        try
+        {
+            lhoraInicio = Convert.ToDateTime(horaInicio);
+            lhoraFin = Convert.ToDateTime(horaFin);
+        }
+        catch
+        {
+            throw new Exception("Error En los Horarios");
+        }
+
+        try { Convert.ToInt32(id); } catch { throw new Exception("Error en el ID");}
+        try { Convert.ToInt32(medicoId); }
+        catch { throw new Exception("Error Datos del Médico"); }
+        try { Convert.ToInt32(diaDeAtencion); }
+        catch { throw new Exception("Error Días de Atención"); }
+
+        try { Convert.ToInt32(EspecialidadId); }
+        catch { throw new Exception("Error en la Especialidad"); }
+        try { Convert.ToInt32(Duracion); }
+        catch { throw new Exception("Error en la Duración"); }
+        try { Convert.ToInt32(ConsultorioId); }
+        catch { throw new Exception("Error en el Consultorio"); }
+
+        if (Convert.ToInt32(diaDeAtencion) < 0) throw new Exception("Error Días de Atención");
+
+        if (Convert.ToInt32(EspecialidadId) < 0) throw new Exception("Error en la Especialidad");
+        if (Convert.ToInt32(Duracion) < 0) throw new Exception("Error en la Duración");
+        if (Convert.ToInt32(ConsultorioId) < 0) throw new Exception("Error en el Consultorio");
+        
+        Hospital.DiasdeAtencionBLL DiaAtencion = new Hospital.DiasdeAtencionBLL();
+        return DiaAtencion.Guardar(id, medicoId, diaDeAtencion, lhoraInicio, lhoraFin, Duracion, ConsultorioId, EspecialidadId);
+    }
+    
+}

@@ -1,0 +1,46 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for GenteBLL
+/// </summary>
+namespace Hospital
+{
+    public class GenteBLL
+    {
+        public GenteBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        public int ActualizarGente(Int64 cuil, int documento, string apellido, string sexo, string telefono, int Seccional, Int64 cuit, string calle, string numero, string piso,
+            string depto, string localidad, int provincia, DateTime fecha_nacimiento, DateTime FechaBaja, bool Provisorio, Int64 cuil_titu, DateTime FechaRevisado, DateTime FechaActualizacion, DateTime FechaAlta,
+                int CodOS, int Cod_Pariente, string email, string celular, string Comentario, string CodPos)
+        {
+            string Usuario = "";
+            int UId = 0;
+            try
+            {
+                Usuario = ((usuarios)HttpContext.Current.Session["Usuario"]).nombre;
+                UId = Convert.ToInt32(((usuarios)HttpContext.Current.Session["Usuario"]).id);
+            }
+            catch
+            {
+                throw new Exception("Hubo un error con la session de Usuario. Por favor cierre y habra de nuevo su sesión, e intentelo nuevamente. De Persistir el error, por favor comunicarse con Sistemas");
+            }
+
+            GenteDALTableAdapters.QueriesTableAdapter adapter = new GenteDALTableAdapters.QueriesTableAdapter();
+            object r = adapter.H2_Padron_Alta(cuil, documento, apellido, sexo, telefono, Seccional, cuit, calle, numero, piso, depto, localidad, provincia, fecha_nacimiento, Provisorio,
+                cuil_titu, FechaRevisado, FechaActualizacion, FechaAlta, CodOS, Cod_Pariente, email, celular, Usuario, FechaBaja, Comentario, CodPos);
+
+            Estadisticas.Est_PacienteMovBLL E = new Estadisticas.Est_PacienteMovBLL();
+            E.EstPacMov(documento, 1, UId, null);
+
+            return (Int32)r;
+        }
+    }
+}

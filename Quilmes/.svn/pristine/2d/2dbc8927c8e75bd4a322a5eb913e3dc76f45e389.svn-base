@@ -1,0 +1,59 @@
+USE [Hospital]
+GO
+/****** Object:  StoredProcedure [dbo].[H2_FACT_VALOR_PRAC_CONVENIO]    Script Date: 07/24/2013 14:13:32 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[H2_FACT_VALOR_PRAC_CONVENIO]
+@InstSecc int,
+@EspecialidadId int,
+@PracticaId int,
+@FechaParte date
+AS
+
+declare @Convenio int
+set @Convenio = 0
+
+--Busco el convenio relacionado a la institucion o seccional
+select @Convenio = Enc_Id from FACT_Relacion where (FACT_Relacion.InstSecc = @InstSecc or FACT_Relacion.InstSecc = 0) and eliminado is null 
+--Busco que dicho convenio no este dado de bajo y que tenga validez dentro de la fecha del parte a cargar
+IF EXISTS (select 1 from FACT_ConveniosEncabezado where (id = @Convenio) and (eliminado is null) and (@FechaParte between fechainicial and fechafinal))
+BEGIN
+	if @Convenio <> 0 --Si el convenio es <> 0 tiene una relacion existente con la Institucion/Seccional, busco el valor Nomenclador
+	BEGIN
+	select * from Fact_ValorPracticaConvenio 
+	where convenioId = @Convenio and codigoId = @PracticaId and especialidadId = @EspecialidadId and eliminado is null
+	END
+END
+---------------------------------------------------------------------------------------------------
+
+USE [Hospital]
+GO
+/****** Object:  StoredProcedure [dbo].[H2_FACT_VALOR_MODULO_CONVENIO]    Script Date: 07/24/2013 14:18:51 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[H2_FACT_VALOR_MODULO_CONVENIO]
+@InstSecc int,
+@ModuloId int,
+@FechaParte date
+AS
+
+declare @Convenio int
+set @Convenio = 0
+
+--Busco el convenio relacionado a la institucion o seccional
+select @Convenio = Enc_Id from FACT_Relacion where (FACT_Relacion.InstSecc = @InstSecc or FACT_Relacion.InstSecc = 0) and eliminado is null
+
+
+--Busco que dicho convenio no este dado de bajo y que tenga validez dentro de la fecha del parte a cargar
+IF EXISTS (select 1 from FACT_ConveniosEncabezado where (id = @Convenio) and (eliminado is null) and (@FechaParte between fechainicial and fechafinal))
+BEGIN
+	if @Convenio <> 0 --Si el convenio es <> 0 tiene una relacion existente con la Institucion/Seccional, busco el valor Nomenclador
+	BEGIN
+	select * from Fact_ValorModuloConvenio 
+	where convenioId = @Convenio and codigoId = @ModuloId and eliminado is null
+	END
+END

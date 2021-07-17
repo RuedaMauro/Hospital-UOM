@@ -1,0 +1,505 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Services;
+using System.Web.Script.Services;
+
+/// <summary>
+/// Summary description for AltasNomencladores
+/// </summary>
+[WebService(Namespace = "http://tempuri.org/")]
+[WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
+// To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
+// [System.Web.Script.Services.ScriptService]
+[ScriptService]
+public class AltasNomencladores : System.Web.Services.WebService {
+
+    public AltasNomencladores () {
+
+        //Uncomment the following line if using designed components 
+        //InitializeComponent(); 
+    }
+
+    [WebMethod(EnableSession = true)]
+    public List<listadeconvenios> VerlosConvenios()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.VerlosConvenios();
+        }
+        else return null;
+    }
+
+    [WebMethod(EnableSession = true)]
+    public List<Facturacion_RangosPrac> VerRangos()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.VerRangos();
+        }
+        else return null;
+    } 
+
+     [WebMethod(EnableSession = true)]
+    public List<Facturacion_RangoConv> VerRangosporConvenio()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.VerRangosporConvenio();
+        }
+        else return null;
+    }
+
+     [WebMethod(EnableSession = true)]
+    public int Insert_Rango(Facturacion_RangosPrac f)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL obj = new Hospital.FacturacionBLL();
+            try
+            {
+                return obj.Fact_Rangos_Practicas_INSERT(f);
+            }
+            catch {
+                throw new Exception("No se Inserto el rango");
+            }
+        }
+        else return -1;
+    }
+
+     [WebMethod(EnableSession = true)]
+    public void Delete_Rango(int Id)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL obj = new Hospital.FacturacionBLL();
+            try
+            {
+                obj.Fact_Rangos_Practicas_Delete(Id);
+            }
+            catch {
+                throw new Exception("No se elimino el rango");
+            }
+        }
+    }
+
+     [WebMethod(EnableSession = true)]
+     public void Delete_RangoValoresConv(int IdRango, long ConvenioId)
+     {
+         if (Session["Usuario"] != null)
+         {
+             Hospital.FacturacionBLL obj = new Hospital.FacturacionBLL();
+             try
+             {
+                 obj.Fact_Rango_Valores_Conv_DELETE(IdRango, ConvenioId);
+             }
+             catch
+             {
+                 throw new Exception("No se elimino el registro");
+             }
+         }
+     }
+    
+     [WebMethod(EnableSession = true)]
+     public void InsertRangoValores(Facturacion_RangoConv f)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL obj = new Hospital.FacturacionBLL();
+            try
+            {
+                obj.Fact_Rango_Valores_Conv_INSERT(f);
+            }
+            catch {
+                throw new Exception("No se inserto el valor");
+            }
+        }
+    }
+    
+
+   
+    [WebMethod(EnableSession = true)]
+    public int QuitarConvenios(long ConvenioNro)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.QuitarConvenio(ConvenioNro);
+        }
+        return 0;
+    }
+
+    [WebMethod(EnableSession = true)]
+    public void GuardarConvenios(long ConvenioNro, string Convenios, string Contacto, string FechaInicio, string FechaFin, string Detalles)
+    {
+        if (Session["Usuario"] != null)
+        {
+            DateTime fechaInicio = Convert.ToDateTime(FechaInicio);
+            DateTime fechaFin = Convert.ToDateTime(FechaFin);
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.GuardarConvenios(ConvenioNro, Convenios, Contacto, fechaInicio, fechaFin, Detalles, (Int32)((usuarios)(Session["Usuario"])).id);
+        }
+    }
+
+    [WebMethod(EnableSession = true)]
+    public List<listaconveniosseccionales> CargarSeccionalesconConvenios(int ConvenioId)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.CargarSeccionalesconConvenios(ConvenioId);
+        }
+        else
+            return null;
+
+    }
+
+
+    [WebMethod(EnableSession = true)]
+    public void GuardarRelacionSeccional(long ConvenioNro, long Seccional, bool Activo)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            if (!Activo)
+            {
+                listadeconvenios l = f.ExisteRelacionSeccional_Convenio(Seccional);
+                if (l != null)
+                {
+                    throw new Exception("Existe Una Relacion Con el Convenio " + l.convenios);
+                }
+                else f.GuardarRelacionSeccional(ConvenioNro, Seccional);
+            }
+            else {
+                f.GuardarRelacionSeccional(ConvenioNro, Seccional);
+            }
+        }
+
+    }
+    
+
+    [WebMethod(EnableSession = true)]
+    public List<listaconveniosinstituciones> CargarInstitucionesconConvenios(int ConvenioId)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.CargarInstitucionesconConvenios(ConvenioId);
+        }
+        else
+            return null;
+
+    }
+
+    [WebMethod(EnableSession = true)]
+    public listadeconvenios ExisteRelacionOS_Convenio(long OS)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.ExisteRelacionOS_Convenio(OS);
+        }
+        else
+            return null;
+
+    }
+
+    [WebMethod(EnableSession = true)]
+    public listadeconvenios ExisteRelacionSeccional_Convenio(long Seccional)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.ExisteRelacionSeccional_Convenio(Seccional);
+        }
+        else
+            return null;
+
+    }
+
+
+    [WebMethod(EnableSession = true)]
+    public void GuardarRelacionInstituciones(long ConvenioNro, long Seccional, bool Activo)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            if (!Activo)
+            {
+                listadeconvenios l = f.ExisteRelacionOS_Convenio(Seccional);
+                if (l != null)
+                {
+                    throw new Exception("Existe Una Relacion Con el Convenio " + l.convenios);
+                }
+                else f.GuardarRelacionInstitucion(ConvenioNro, Seccional);
+            }
+            else f.GuardarRelacionInstitucion(ConvenioNro, Seccional);
+        }
+
+    }
+
+
+    [WebMethod(EnableSession = true)]
+    public void Sugerencia_Eliminar(long Codigo)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.Sugerencia_Eliminar(Codigo, (Int32)((usuarios)Session["Usuario"]).id);
+        }
+
+    }
+
+
+    [WebMethod(EnableSession = true)]
+    public void Sugerencia_Guardar(long Codigo, string Descripcion)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.Sugerencia_Guardar(Codigo, Descripcion);
+        }
+
+    }
+
+
+    [WebMethod(EnableSession = true)]
+    public List<listasugerencias> Sugerencia_Listar()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.Sugerencia_Listar();
+        }
+        else
+        {
+            return null;
+        }
+
+
+    }
+
+
+
+
+    [WebMethod(EnableSession = true)]
+    public List<listasugerencias> Carencias_Listar()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.Carencias_Listar();
+        }
+        else
+        {
+            return null;
+        }
+
+
+    }
+
+
+
+
+    [WebMethod(EnableSession = true)]
+    public List<listasugerencias> Complejidad_Listar()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.Complejidad_Listar();
+        }
+        else
+        {
+            return null;
+        }
+
+    }
+
+
+    [WebMethod(EnableSession = true)]
+    public void GuardarFacturacionPracticas(List<listasugerencias> objPracticas, 
+             long codigo, 
+             string descripcion, 
+             long sugerenciasId,
+             bool sugerenciasEstado, 
+             int complejidadId,
+             long carenciaid,
+             int topemensual,
+             int topeanual,
+             bool valorglobal,
+             string vnn,
+             string vguar,
+             string vg,
+             string vhono,
+             bool ck_sefacturo,
+             bool ck_cobrahono
+        )
+    {
+        if (Session["Usuario"] != null)
+        {
+
+             decimal dvnn = Convert.ToDecimal(vnn.Replace(".",","));
+             decimal dvguar = Convert.ToDecimal(vguar.Replace(".", ","));
+             decimal dvg = Convert.ToDecimal(vg.Replace(".", ","));
+             decimal dvhono = Convert.ToDecimal(vhono.Replace(".", ","));
+
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.GuardarFacturacionPracticas(objPracticas, codigo, descripcion, sugerenciasId, sugerenciasEstado, complejidadId, carenciaid, topemensual, topeanual, valorglobal, dvnn, dvguar, dvg, dvhono, ck_sefacturo, ck_cobrahono);
+        }
+    }
+
+    
+    
+    [WebMethod(EnableSession = true)]
+    public void GuardarValorPracticas(long ConvenioId, int PracticaId, int EspecialidadId, string vbono, string vaa, string vaci, string vnn, string vg, string vhono)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+
+            vbono = vbono.Trim(); if (vbono.Length == 0) vbono = "0.00";
+            vaa = vaa.Trim(); if (vaa.Length == 0) vaa = "0.00";
+            vaci = vaci.Trim(); if (vaci.Length == 0) vaci = "0.00";
+            vnn = vnn.Trim(); if (vnn.Length == 0) vnn = "0.00";
+            vg = vg.Trim(); if (vg.Length == 0) vg = "0.00";
+            vhono = vhono.Trim(); if (vhono.Length == 0) vhono = "0.00";
+
+            decimal VBono = Convert.ToDecimal(vbono.Replace(".",","));
+            decimal VAa = Convert.ToDecimal(vaa.Replace(".", ","));
+            decimal VAci = Convert.ToDecimal(vaci.Replace(".", ","));
+            decimal VNn = Convert.ToDecimal(vnn.Replace(".", ","));
+            decimal VG = Convert.ToDecimal(vg.Replace(".", ","));
+            decimal VHono = Convert.ToDecimal(vhono.Replace(".", ","));
+
+            f.Fact_GuardarValorPracticas(ConvenioId, PracticaId, EspecialidadId, VBono, VAa, VAci, VNn, VG, VHono);
+        }
+        
+
+    }
+
+    [WebMethod(EnableSession = true)]
+    public List<FactValorPracticasEspecialidad> Fact_EspecialidadPracticaConvenios(long ConvenioId)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.Facturacion_Practicas_Especialidad_Convenios_Lista(ConvenioId);
+        }
+        else
+        {
+            return null;
+        }
+
+    }
+
+    
+    [WebMethod(EnableSession = true)]
+    public void QuitarValorPracticasConvenios(long ConvenioId, int PracticaId, int EspecialidadId )
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.Fact_QuitarValorPracticas(ConvenioId, PracticaId, EspecialidadId);
+        }        
+    }
+
+    [WebMethod(EnableSession = true)]
+    public void QuitarValorModulosConvenios(long ConvenioId, int ModuloId)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.Fact_QuitarValorModulos(ConvenioId, ModuloId);
+        }        
+    }
+    
+
+    [WebMethod(EnableSession = true)]
+    public void ListaModulosConveniosTotal()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            f.ListaModulosConveniosTotal(0);
+        }        
+    }
+
+    [WebMethod(EnableSession = true)]
+    public List<FactValorModulosConvenio> ListaModulosbyEnc(int EncabezadoId)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.ListaModulosbyEnc(EncabezadoId);
+        }
+        else return null;
+    }
+
+    
+    
+    
+    [WebMethod(EnableSession = true)]
+    public List<FactModulosDetalles> ListadodeModulosTotal()
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.ListadoModulos(0, null);
+        }
+        return null;
+    }
+    
+    
+    [WebMethod(EnableSession = true)]
+    public List<FactValorModulosConvenio> Fact_ListadoModulosConvenios(long ConvenioId)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+            return f.ListaModulosConveniosTotal(ConvenioId);
+        }
+        else
+        {
+            return null;
+        }
+
+    }
+
+
+
+    [WebMethod(EnableSession = true)]
+    public void GuardarValorModulosConvenios(long ConvenioId, int ModuloId, string vbono, string vaa, string vaci, string vnn, string vg, string vhono)
+    {
+        if (Session["Usuario"] != null)
+        {
+            Hospital.FacturacionBLL f = new Hospital.FacturacionBLL();
+
+            vbono = vbono.Trim(); if (vbono.Length == 0) vbono = "0.00";
+            vaa = vaa.Trim(); if (vaa.Length == 0) vaa = "0.00";
+            vaci = vaci.Trim(); if (vaci.Length == 0) vaci = "0.00";
+            vnn = vnn.Trim(); if (vnn.Length == 0) vnn = "0.00";
+            vg = vg.Trim(); if (vg.Length == 0) vg = "0.00";
+            vhono = vhono.Trim(); if (vhono.Length == 0) vhono = "0.00";
+
+            decimal VBono = Convert.ToDecimal(vbono.Replace(".", ","));
+            decimal VAa = Convert.ToDecimal(vaa.Replace(".", ","));
+            decimal VAci = Convert.ToDecimal(vaci.Replace(".", ","));
+            decimal VNn = Convert.ToDecimal(vnn.Replace(".", ","));
+            decimal VG = Convert.ToDecimal(vg.Replace(".", ","));
+            decimal VHono = Convert.ToDecimal(vhono.Replace(".", ","));
+
+            
+            f.GuardarFacturacionModulos(ConvenioId, ModuloId, VHono, VBono, VAa, VAci, VG, VNn);
+        }
+
+
+    }
+
+
+    
+}

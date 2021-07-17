@@ -1,0 +1,570 @@
+﻿var objPracticas = new Array();
+var i = 0;
+var Practicas = new Array();
+var Total = -1;
+var Editando = 0;
+var EditandoPos = 0;
+var Actual = "";
+var MedicoId = 0;
+var NHC = "";
+var Protocolo = 0;
+
+function Cargar_Paciente_NHC(NHC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Cargado,
+        error: errores
+    });
+}
+
+function Cargar_Paciente_Documento(Documento) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Cargar_Paciente_Documento",
+        data: '{Documento: "' + Documento + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Cargado,
+        error: errores
+    });
+}
+
+function Cargar_Paciente_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+
+    $.each(Paciente, function (index, paciente) {
+
+
+        $("#btnCargar").show();
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+        $("#txt_dni").attr('value', paciente.documento);
+        $("#txtNHC").attr('value', paciente.NHC);
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+
+        $("#CargadoLocalidad").html(paciente.localidad.substring(0, 15));
+
+
+        if (paciente.Nro_Seccional != "999") {
+            $("#CargadoSeccional").html(paciente.Seccional);
+        }
+        else {
+            $("#CargadoSeccional").html("Sin Seccionalizar");
+        }
+
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+        }
+
+        if (NHC != '' && NHC != null) {
+            $("#btnCargar").click();
+        }
+
+    });
+}
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+$("#txt_dni").keypress(function (event) {
+    if (event.which == 13) {
+        if ($('#txt_dni').attr('readonly') == undefined) {
+            Cargar_Paciente_Documento($("#txt_dni").val());
+        }
+    }
+});
+
+$("#txt_dni").change(function () {
+    Cargar_Paciente_Documento($("#txt_dni").val());
+});
+
+
+$("#txtNHC").change(function () {
+    Cargar_Paciente_NHC($("#txtNHC").val());
+});
+
+$(document).ready(function () {
+
+    $('#txt_dni').focus();
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+
+    var GET = {};
+
+    document.location.search.replace(/\??(?:([^=]+)=([^&]*)&?)/g, function () {
+        function decode(s) {
+            return decodeURIComponent(s.split("+").join(" "));
+        }
+
+        GET[decode(arguments[1])] = decode(arguments[2]);
+    });
+
+
+    if (GET["NHC"] != "" && GET["NHC"] != null) {
+        NHC = GET["NHC"];
+        Cargar_Paciente_NHC(NHC);
+    }
+
+    if (GET["MedicoId"] != "" && GET["MedicoId"] != null) {
+        MedicoId = GET["MedicoId"];
+    }
+
+
+
+    $("#txtFecha").mask("99/99/9999", { placeholder: "-" });
+    $("#txtNHC").mask("9999999999?9", { placeholder: "-" });
+    $("#txt_dni").mask("9999999?9", { placeholder: "-" });
+    $("#txtFecha").datepicker();
+
+    Cargar_Practicas();
+
+    if (GET["Protocolo"] != "" && GET["Protocolo"] != null) {
+        Protocolo = GET["Protocolo"];
+        if (Protocolo != 0) {
+            $("#btnImprimir").show();
+        }
+        $("#ProtocoloNumero").html(Protocolo);
+        $("#ProtocoloNumero").removeClass("red");
+        CargarOrdenesdeEstudios();
+    }
+    else {
+        CargarDiagnostico('');
+        CargarPatologia('');
+        $("#txtFecha").val(FechaActual());
+    }
+
+});
+
+$('#fotopaciente').error(function () {
+    $(this).attr('src', '../img/silueta.jpg');
+});
+
+$("#btnImprimir").click(function () {
+    self.location = "../Impresiones/ImpresionOrdenesEstudios.aspx?Protocolo=" + Protocolo;
+});
+
+function CargarOrdenesdeEstudios() {
+    $.ajax({
+        type: "POST",
+        data: '{Protocolo: "' + Protocolo + '"}',
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/CargarOrdenEstudioCab",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Orden = Resultado.d;
+            $('#cbo_dignostico').empty();
+            CargarDiagnostico(Orden.diagnosticoid);
+            CargarPatologia(Orden.patologiaid);
+            $("#txtFecha").val(Orden.fechainicio);
+            CargarDetalles();
+        },
+        error: errores
+    });
+}
+
+
+function CargarDetalles() {
+    $.ajax({
+        type: "POST",
+        data: '{Protocolo: "' + Protocolo + '"}',
+        url: "../Json/AtConsultorio/AtConsultorio.asmx/CargarOrdenEstudioDet",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var Detalles = Resultado.d;
+
+            //$('#cbo_dignostico').empty();
+            $.each(Detalles, function (index, detalle) {
+
+
+                Nombre = detalle.Nombre;
+                Codigo = detalle.Codigo;
+                Observacion = detalle.Observacion;
+                PracticaId = detalle.PracticaId;
+                Estado = 1;
+                var Cual = Total;
+                if (Editando == 1) {
+                    Cual = EditandoPos;
+                }
+                else {
+                    Total = Total + 1;
+                    Cual = Total;
+                }
+
+                var objPractica = {};
+                objPractica.Codigo = Codigo;
+                objPractica.Estado = Estado;
+                objPractica.Observacion = Observacion;
+                objPractica.Nombre = Nombre;
+                objPractica.PracticaId = PracticaId;
+                objPracticas[Cual] = objPractica;
+
+
+
+
+            });
+
+            RenderizarTabla();
+            Editando = 0;
+            EditandoPos = -1;
+
+        },
+        error: errores
+    });
+}
+
+
+function CargarDiagnostico(diagnosticoicd10) {
+    $.ajax({
+        type: "POST",
+        data: '{Codigo: ""}',
+        url: "../Json/Internaciones/IntSSC.asmx/CargarDiagnosticoICD10",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var ICD10 = Resultado.d;
+            $('#cbo_dignostico').empty();
+            $.each(ICD10, function (index, icd) {
+                $('#cbo_dignostico').append(
+              $('<option></option>').val(icd.Codigo).html(icd.Descripcion)
+            );
+            });
+            if (diagnosticoicd10 != '' && diagnosticoicd10 != null) {
+                $("#cbo_dignostico option[value=" + diagnosticoicd10 + "]").attr("selected", true);
+            }
+        },
+        error: errores
+    });
+}
+
+
+function CargarPatologia(Patologia) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/AtConsultorio/Patologia.asmx/Patologia_Lista",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (Resultado) {
+            var PATOLOGIA = Resultado.d;
+            $('#cbo_patologia').empty();
+            $('#cbo_patologia').append('<option value="0"></option>');
+            $.each(PATOLOGIA, function (index, pat) {
+              $('#cbo_patologia').append(
+              
+              $('<option></option>').val(pat.id).html(pat.patologias)
+            );
+            });
+            if (Patologia != '' && Patologia != null) {
+                $("#cbo_patologia option[value=" + Patologia + "]").attr("selected", true);
+            }
+        },
+        error: errores
+    });
+}
+
+
+function Cargar_Practicas() {
+    $.ajax({
+        type: "POST",
+        url: "../Json/ConfirmarTurnos.asmx/Practicas_Listas_Total",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Practicas_Cargadas,
+        error: errores
+    });
+}
+
+
+function Practicas_Cargadas(Resultado) {
+    var Practicas = Resultado.d;
+    $('#cbo_Practicas').empty();
+    $('#cbo_Practicas').append('<option value="0">Seleccione una Práctica</option>');
+    $.each(Practicas, function (index, practicas) {
+        $('#cbo_Practicas').append(
+              $('<option></option>').val(practicas.Id).html(practicas.Practica)
+        );
+    });
+}
+
+
+$("#cbo_Practicas").change(function () {
+    Practicas_Id_Codigo($('#cbo_Practicas option:selected').val());
+});
+
+function Practicas_Id_Codigo(Id) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/Practicas/Practicas.asmx/Practicas_Id_Codigo",
+        data: '{Id: "' + Id + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Id_Codigo,
+        error: errores
+    });
+}
+
+function Cargar_Id_Codigo(Resultado) {
+    var Codigo = Resultado.d;
+    $("#txtCodigo").val(Codigo);
+}
+
+
+$("#txtCodigo").blur(function () {
+    var Numeros = /^([0-9])*$/;
+        if (Numeros.test($("#txtCodigo").val())) {
+            if ($("#txtCodigo").val() == "") {
+                $("#cbo_Practicas").focus();
+            }
+            else {
+                Practica_Codigo_ID($("#txtCodigo").val());
+                $("#txt_observacion").focus();
+            }
+        }
+        else {
+            $("#ControltxtCodigo").addClass("error");
+            $("#txtCodigo").focus();
+        }
+});
+
+$("#txtCodigo").keypress(function (event) {
+    var Numeros = /^([0-9])*$/;
+    if (event.which == 13 || event.keyCode == 9) {
+        event.preventDefault();
+        if (Numeros.test($("#txtCodigo").val())) {
+            if ($("#txtCodigo").val() == "") {
+                $("#cbo_Practicas").focus();
+            }
+            else {
+                Practica_Codigo_ID($("#txtCodigo").val());
+                $("#txt_observacion").focus();
+            }
+        }
+        else {
+            $("#ControltxtCodigo").addClass("error");
+            $("#txtCodigo").focus();
+        }
+    }
+});
+
+function Practica_Codigo_ID(Codigo) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/ConfirmarTurnos.asmx/Practicas_Codigo_ID",
+        data: '{Codigo: "' + Codigo + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Practica_Codigo_ID_Cargadas,
+        error: errores
+    });
+}
+
+function Practica_Codigo_ID_Cargadas(Resultado) {
+    var Id = Resultado.d;
+    if (Id != 0) {
+        $("#cbo_Practicas option[value=" + Id + "]").attr("selected", true);
+        $("#txt_observacion").focus();
+    }
+    else {
+        $("#cbo_Practicas option[value=0]").attr("selected", true);
+        $("#ControltxtCodigo").addClass("error");
+        $("#txtCodigo").val('');
+        $("#txtCodigo").focus();
+    }
+}
+
+function Eliminar(Nro) {
+    objPracticas[Nro].Estado = 0;
+    RenderizarTabla();
+}
+
+function RenderizarTabla() {
+    var Contenido = "";
+    for (var i = 0; i <= Total; i++) {
+        //Estado = 0 es Borrado
+        if (objPracticas[i].Estado == 1) {
+            Contenido = Contenido + "<tr><td ><a id='Eliminar" + i + "'onclick='Eliminar(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Práctica'><i class='icon-remove-circle icon-white'></i></a></td><td onclick='Editar(" + i + ");'>" + objPracticas[i].Codigo + " </td><td onclick='Editar(" + i + ");'> " + objPracticas[i].Nombre.substring(0, 20) + " </td><td onclick='Editar(" + i + ");'> " + objPracticas[i].Observacion + " </td></tr>";
+        }
+    }
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    $("#TablaPracticas").html(Contenido);
+
+}
+
+function Editar(Nro) {
+    Editando = 1;
+    EditandoPos = Nro;
+
+    $("#txtCodigo").val(objPracticas[Nro].Codigo);
+    $("#cbo_Practicas option[value=" + objPracticas[Nro].PracticaId + "]").attr("selected", true);
+    $("#txt_observacion").val(objPracticas[Nro].Observacion);
+    $("#myModal").modal('show');
+}
+
+
+
+
+$("#btnAgregarPractica").click(function () {
+
+    if ($("#txtCodigo").val() == '') {
+        $("#ControltxtCodigo").addClass("error");
+        $("#txtCodigo").focus();
+    }
+    else {
+        if (!Existe($("#txtCodigo").val())) {
+
+            Nombre = $("#cbo_Practicas :selected").text();
+            //Codigo = $('#cbo_Practicas option:selected').val();  //$("#txtCodigo").val();
+            Codigo = $("#txtCodigo").val();
+            Observacion = $("#txt_observacion").val();
+            PracticaId = $("#cbo_Practicas").val();
+            Estado = 1;
+            var Cual = Total;
+            if (Editando == 1) {
+                Cual = EditandoPos;
+            }
+            else {
+                Total = Total + 1;
+                Cual = Total;
+            }
+
+            var objPractica = {};
+            objPractica.Codigo = Codigo;
+            objPractica.Estado = Estado;
+            objPractica.Observacion = Observacion;
+            objPractica.Nombre = Nombre;
+            objPractica.PracticaId = PracticaId;
+            objPracticas[Cual] = objPractica;
+
+            RenderizarTabla();
+            Editando = 0;
+            EditandoPos = -1;
+
+            LimpiarCampos();
+            $("#txtCodigo").focus();
+
+        }
+    }
+
+});
+
+
+        function LimpiarCampos() {
+            $("#txtCodigo").val("");
+            $("#txt_observacion").val("");
+            $("#cbo_Practicas option[value=0]").attr("selected", true);
+        }
+
+        function Existe(Algo) {
+
+            for (var i = 0; i <= Total; i++) {
+                if (objPracticas[i].Codigo == Algo && objPracticas[i].Estado == 1 && Editando != 1) {
+                    alert("Ya ha cargado la práctica Nro: " + Algo);
+                    LimpiarCampos();
+                    $("#txtCodigo").focus();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        $('#btnCargar').click(function () {
+            $("#hastaaqui").fadeIn(1500);
+            $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top + 30 }, 500);
+            $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+        });
+
+        $("#modal_carga").click(function () {
+            $("#myModal").modal('show');
+        });
+
+        $("#btnCancelarPractica").click(function () {
+            $('#btnCargar').click();
+            LimpiarCampos();
+        });
+
+
+
+
+
+        $("#btnGuardarOrdenEstudio").click(function () {
+		    vacio = true;
+            i = 0;
+            if (objPracticas == undefined) { alert("No se puede guardar una orden de estudio vacía"); return false; }
+            else {
+                for (i = 0; i < objPracticas.length; i++) {
+                    if (objPracticas[i].Estado == 1) {
+                        vacio = false;
+                    }
+                }
+            }
+
+            if (vacio) { alert("No se puede guardar una orden de estudio vacía"); return false; }
+			
+            if (MedicoId == "0") { alert("Error con el médico seleccionado"); return false; }
+
+            var json = JSON.stringify({ 
+            "objPracticas": objPracticas,
+            "Protocolo": Protocolo,
+            "MedicoID": MedicoId,
+            "PatologiaID": $('#cbo_patologia option:selected').val(),
+            "NHC": $("#txtNHC").val(),
+            "FechaInicio": $("#txtFecha").val(),
+            "DiagnosticoID": $('#cbo_dignostico option:selected').val()
+        });
+
+            $.ajax({
+                type: "POST",
+                url: "../Json/AtConsultorio/AtConsultorio.asmx/GuardarOrdenesdeEstudio",
+                data: json,
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: OrdenesEstudiosGuardados,
+                error: errores
+            });
+
+
+        });
+
+        function OrdenesEstudiosGuardados(Resultado) {
+            var Id = Resultado.d;
+            //alert(Id);
+            //alert(Protocolo);
+            self.location = "../Impresiones/ImpresionOrdenesEstudios.aspx?Protocolo=" + Id;
+        }
+

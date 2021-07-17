@@ -1,0 +1,178 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for HistoriaClinicaBLL
+/// </summary>
+namespace Hospital
+{
+    public class HistoriaClinicaBLL
+    {
+        public HistoriaClinicaBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+
+
+        }
+
+        public List<historiaclinica> HistoriaClinica(long NHC, DateTime FechaDesde, DateTime FechaHasta, string EspecialidadesId, bool Diabetologia, bool Internacion, bool Cirugia)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_TotalTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_TotalTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_TotalDataTable aTable = adapter.GetData(NHC, FechaDesde, FechaHasta, EspecialidadesId, Diabetologia, Internacion, Cirugia);
+            List<historiaclinica> Lista = new List<historiaclinica>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_TotalRow row in aTable.Rows)
+            {
+                historiaclinica h = new historiaclinica();
+                h.HClinica = row.HC;
+                Lista.Add(h);
+            }
+            return Lista;
+
+        }
+
+        public List<lista_anios> Internaciones_Anios(long NHC)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_InternacionesTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_InternacionesTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_InternacionesDataTable aTable = adapter.GetData(NHC);
+            List<lista_anios> Lista = new List<lista_anios>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_InternacionesRow row in aTable.Rows)
+            {
+                lista_anios i = new lista_anios();
+                i.anio = row.Anio.ToString();
+                Lista.Add(i);
+            }
+            return Lista;
+
+        }
+
+
+        public List<lista_anios> Cirugias_Anios(long NHC)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_CirugiasTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_CirugiasTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_CirugiasDataTable aTable = adapter.GetData(NHC);
+            List<lista_anios> Lista = new List<lista_anios>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_CirugiasRow row in aTable.Rows)
+            {
+                lista_anios i = new lista_anios();
+                i.anio = row.Anio.ToString();
+                Lista.Add(i);
+            }
+            return Lista;
+
+        }
+
+
+        public List<lista_anios> Ambulatorio_Anios(long NHC)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_Anio_Antecedentes_AmbulatoriosTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_Anio_Antecedentes_AmbulatoriosTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_Anio_Antecedentes_AmbulatoriosDataTable aTable = adapter.GetData(NHC);
+            List<lista_anios> Lista = new List<lista_anios>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_Anio_Antecedentes_AmbulatoriosRow row in aTable.Rows)
+            {
+                lista_anios i = new lista_anios();
+                i.anio = row.Anio.ToString();
+                Lista.Add(i);
+            }
+            return Lista;
+
+        }
+
+
+
+        public List<lista_meses> Ambulatorio_Meses(long NHC, int Anio)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_Meses_Antecedentes_AmbulatoriosTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_Arbol_Meses_Antecedentes_AmbulatoriosTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_Meses_Antecedentes_AmbulatoriosDataTable aTable = adapter.GetData(Anio, NHC);
+            List<lista_meses> Lista = new List<lista_meses>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_Arbol_Meses_Antecedentes_AmbulatoriosRow row in aTable.Rows)
+            {
+                lista_meses m = new lista_meses();
+                m.mes = row.Mes.ToString();
+                Lista.Add(m);
+            }
+            return Lista;
+
+        }
+
+
+        public List<registro_internacion> Internacion_Datos(long NHC, int Anio)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_InternacionTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_InternacionTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_InternacionDataTable aTable = adapter.GetData(Anio, NHC);
+            List<registro_internacion> Lista = new List<registro_internacion>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_InternacionRow row in aTable.Rows)
+            {
+                registro_internacion i = new registro_internacion();
+                if (!row.IsEgresoFechaNull()) { i.egreso = row.EgresoFecha.ToString(); } else { i.egreso = ""; }
+                if (!row.IsEspecialidadNull()) { i.especialidad = row.Especialidad; } else { i.especialidad = ""; }
+                i.id = row.Id.ToString();;
+                i.ingreso = row.Fecha.ToShortDateString();
+                if (!row.IsMedicoNull()) { i.medico = row.Medico; } else { i.medico = ""; }
+                if (!row.IsMotivoEgresoNull()) { i.motivoegreso = row.MotivoEgreso; } else { i.motivoegreso = ""; }
+                if (!row.IsMotivoIngresoNull()) { i.motivoingreso = row.MotivoIngreso; } else { i.motivoingreso = ""; }
+                if (!row.IsServicioNull()) { i.servicio = row.Servicio; } else { i.servicio = ""; }
+                Lista.Add(i);
+            }
+            return Lista;
+
+        }
+
+
+
+        public List<registro_cirugias> Cirugia_Datos(long NHC, int Anio)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_CirugiasTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_CirugiasTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_CirugiasDataTable aTable = adapter.GetData(Anio, NHC);
+            List<registro_cirugias> Lista = new List<registro_cirugias>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_CirugiasRow row in aTable.Rows)
+            {
+                registro_cirugias c = new registro_cirugias();
+                if (!row.IsCirugiaNull()) { c.cirugia = row.Cirugia; } else { c.cirugia = ""; }
+                if (!row.IsDiagnosticoNull()) { c.diagnostico = row.Diagnostico; } else { c.diagnostico = ""; }
+                if (!row.IsEspecialidadNull()) { c.especialidad = row.Especialidad; } else { c.especialidad = ""; }
+                c.fecha = row.fecha.ToShortDateString();
+                c.id = row.id.ToString();
+                if (!row.IsCirujanoNull()) { c.medico = row.Cirujano; } else { c.medico = ""; }
+                Lista.Add(c);
+            }
+            return Lista;
+
+        }
+
+
+        public List<registro_ambulatorio> Ambulatorio_Datos(long NHC, int Anio, int Mes)
+        {
+            HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_AmbulatorioTableAdapter adapter = new HistoriaClinicaDALTableAdapters.H2_Historia_Clinica_AmbulatorioTableAdapter();
+            HistoriaClinicaDAL.H2_Historia_Clinica_AmbulatorioDataTable aTable = adapter.GetData(Anio, NHC, Mes);
+            List<registro_ambulatorio> Lista = new List<registro_ambulatorio>();
+
+            foreach (HistoriaClinicaDAL.H2_Historia_Clinica_AmbulatorioRow row in aTable.Rows)
+            {
+                registro_ambulatorio a = new registro_ambulatorio();
+
+                if (!row.IsDiagnosticoNull()) { a.diagnostico = row.Diagnostico; } else { a.diagnostico = ""; }
+                if (!row.IsEspecialidadNull()) { a.especialidad = row.Especialidad; } else { a.especialidad = ""; }
+                a.fecha = row.Fecha_Atencion.ToShortDateString();
+                a.id = row.Id.ToString();
+                if (!row.IsMedicoNull()) { a.medico = row.Medico; } else { a.medico = ""; }
+                if (!row.IsTipoNull()) { a.tipo = row.Tipo; } else { a.tipo = ""; }
+
+                Lista.Add(a);
+            }
+            return Lista;
+
+        }
+
+    }
+}

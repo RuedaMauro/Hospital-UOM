@@ -1,0 +1,349 @@
+﻿var Especialidad = 0;
+var TurnoId = 0;
+
+$(document).ready(function () {
+
+
+    $('#txtNroBono').focus();
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+
+    $("#txtFechaTuro").mask("99/99/9999", { placeholder: "-" });
+    $("#txtNroBono").mask("9?9999999");
+    $("#txt_dni").mask("9999999?9");
+    $("#txtNHC").mask("99999999999");
+    $("#txtFechaTuro").val(FechaActual());
+    $("#txtFechaTuro").datepicker();
+
+});
+
+
+
+function Cargar_Paciente_Documento(Documento) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Cargar_Paciente_Documento",
+        data: '{Documento: "' + Documento + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Documento_Cargado,
+        error: errores
+    });
+}
+
+function imgErrorPaciente(image) {
+    image.onerror = "";
+    image.src = "../img/silueta.jpg";
+    return true;
+}
+
+function Cargar_Paciente_Documento_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+    $.each(Paciente, function (index, paciente) {
+        $("#desdeaqui").click();
+        $("#btnCancelarPedidoTurno").show();
+
+        $("#txtNroBono").prop("readonly", true);
+        $("#txtFechaTuro").prop("readonly", true);
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+
+
+        $("#btnOtorgados").css('display', 'inline');
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+
+
+
+        if ($("#txtNroBono").val() != '') {
+            $("#txt_dni").val(paciente.documento);
+        }
+
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.cuil + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+            $("#desdeaqui").focus();
+        }
+
+    });
+}
+
+
+
+
+
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+
+$("#txtFechaTuro").change(function () {
+    $("#TablaTurnos").empty();
+    $("#txtNroBono").val('');
+    $("#txt_dni").val('');
+    $("#txtNHC").val('');
+});
+
+
+
+function Cargar_Paciente_PorDocumento() {
+
+    var json = JSON.stringify({
+        "Documento": $("#txt_dni").val(),
+        "Fecha": $("#txtFechaTuro").val()
+    });
+
+    if ($("#txt_dni").val() != '' && $("#txtFechaTuro").val() != '') {
+
+        $("#TablaTurnos").empty();
+
+        $.ajax({
+            type: "POST",
+            url: "../Json/AtConsultorio/AtConsultorio.asmx/At_Consultorio_PorDocumento",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Cargar_Paciente_PorDocumento_Cargado,
+            error: errores
+        });
+    }
+    else {
+        return false;
+    }
+}
+
+function Cargar_Paciente_PorDocumento_Cargado(Resultado) {
+    var Turnos = Resultado.d;
+    var Tabla_Titulo = "";
+    var Tabla_Datos = "";
+    var Tabla_Fin = "";
+
+
+    $("#TablaTurnos").empty();
+
+    Tabla_Titulo = "<table class='table table-hover table-condensed'><thead><tr><th>Fecha</th><th>Hora</th><th>Médico</th><th>Especialidad</th><th>Consultorio</th></tr></thead><tbody>";
+    $.each(Turnos, function (index, turno) {
+        Tabla_Datos = Tabla_Datos + "<tr onclick=Confirmar(" + turno.TurnoId + "," +turno.EspecialidadId+")";
+        Tabla_Datos = Tabla_Datos + "><td>" + turno.Fecha + "</td><td>" + turno.Hora + "</td><td>" + turno.Medico + "</td><td>" + turno.Especialidad + "</td><td>" + turno.Consultorio + "</td></tr>";
+    });
+
+    Tabla_Fin = "</tbody></table>";
+    $("#TablaTurnos").html(Tabla_Titulo + Tabla_Datos + Tabla_Fin);
+    Cargar_Bonos_Libres();
+}
+
+$('#desdeaqui').click(function () {
+    $("#hastaaqui").fadeIn(1500);
+    $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top - 60 }, 500);
+    $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+    $('#cbo_Especialidad').focus();    
+
+});
+
+
+function Confirmar(Id, EspecialidadId) {
+    Especialidad = EspecialidadId;
+    TurnoId = Id;
+    if ($("#txt_dni").val() != '') {
+        $("#BonoModal").modal('show');
+    }
+}
+
+function ConfirmarBB(Id, EspecialidadId) {
+    Especialidad = EspecialidadId;
+    TurnoId = Id;
+    ConfirmarB($("#txtNroBono").val());
+}
+
+$("#txt_dni").change(function () {
+    if ($("#txtNroBono").val() == '') {
+        Cargar_Paciente_PorDocumento();
+        Cargar_Paciente_Documento($("#txt_dni").val());
+    }
+})
+
+$("#txtNroBono").change(function () {
+    Cargar_Paciente_PorBonoId();
+})
+
+function Cargar_Paciente_PorBonoId() {
+
+    var json = JSON.stringify({
+        "BonoId": $("#txtNroBono").val(),
+        "Fecha": $("#txtFechaTuro").val()
+    });
+
+    if ($("#txtNroBono").val() != '' && $("#txtFechaTuro").val() != '') {
+        $("#TablaTurnos").empty();
+        $.ajax({
+            type: "POST",
+            url: "../Json/AtConsultorio/AtConsultorio.asmx/At_Consultorio_BonoId",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Cargar_Paciente_PorBonoId_Cargado,
+            error: errores
+        });
+    }
+    else {
+        return false;
+    }
+}
+
+function Cargar_Paciente_PorBonoId_Cargado(Resultado) {
+
+    var Turnos = Resultado.d;
+    var Tabla_Titulo = "";
+    var Tabla_Datos = "";
+    var Tabla_Fin = "";
+
+    if (Turnos.Medico != "") {
+
+        $("#desdeaqui").click();
+        Cargar_Paciente_Documento(Turnos.Documento);
+
+        $("#TablaTurnos").empty();
+
+        Tabla_Titulo = "<table class='table table-hover table-condensed'><thead><tr><th>Fecha</th><th>Hora</th><th>Médico</th><th>Especialidad</th><th>Consultorio</th></tr></thead><tbody>";
+
+
+        Tabla_Datos = Tabla_Datos + "<tr onclick=ConfirmarBB(" + Turnos.TurnoId + ",0)";
+        Tabla_Datos = Tabla_Datos + "><td>" + Turnos.Fecha + "</td><td>" + Turnos.Hora + "</td><td>" + Turnos.Medico + "</td><td>" + Turnos.Especialidad + "</td><td>" + Turnos.Consultorio + "</td></tr>";
+
+
+        Tabla_Fin = "</tbody></table>";
+        $("#TablaTurnos").html(Tabla_Titulo + Tabla_Datos + Tabla_Fin);
+    }
+    
+}
+
+
+
+
+function Cargar_Bonos_Libres() {
+
+    var json = JSON.stringify({
+        "Documento": $("#txt_dni").val(),
+        "Especialidad": Especialidad
+    });
+
+    if ($("#txt_dni").val() != '') {
+
+        $("#BonosLibres").empty();
+
+        $.ajax({
+            type: "POST",
+            url: "../Json/AtConsultorio/AtConsultorio.asmx/At_Consultorio_Bonos_Libres",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Cargar_Bonos_Libres_Cargado,
+            error: errores
+        });
+    }
+    else {
+        return false;
+    }
+}
+
+function Cargar_Bonos_Libres_Cargado(Resultado) {
+    var Bonos = Resultado.d;
+    var Tabla_Datos = "";
+
+    $("#BonosLibres").empty();
+
+
+    $.each(Bonos, function (index, bono) {
+        Tabla_Datos = Tabla_Datos + "<tr style='cursor:pointer;' onclick=ConfirmarB(" + bono.Bono_id + ")";
+        Tabla_Datos = Tabla_Datos + "><td>" + bono.Bono_id + "</td><td>" + bono.Fecha + "</td><td>" + bono.Medico + "</td><td>" + bono.Especialidad + "</td></tr>";
+    });
+
+
+    $("#BonosLibres").html(Tabla_Datos);
+
+}
+
+$('#desdeaqui').click(function () {
+    $("#hastaaqui").fadeIn(1500);
+    $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top - 60 }, 500);
+    $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+    $('#cbo_Especialidad').focus();
+});
+
+
+
+
+
+
+$("#btnOtorgados").fancybox({
+    'width': '75%',
+    'height': '75%',
+    'href': '../Turnos/TurnosOtorgados.aspx?Documento=' + $('#CargadoDNI').html(),
+    'autoScale': false,
+    'transitionIn': 'none',
+    'transitionOut': 'none',
+    'type': 'iframe'
+});
+
+
+function ConfirmarB(BonoId)
+{
+    
+    var json = JSON.stringify({
+        "TurnoId": TurnoId,
+        "BonoId": BonoId
+    });
+
+    if (TurnoId != '' && BonoId != 0) {
+
+        $("#BonosLibres").empty();
+        $('#BonoModal').modal('hide')
+
+        $.ajax({
+            type: "POST",
+            url: "../Json/AtConsultorio/AtConsultorio.asmx/At_Consultorio_Confirmar_Turnos",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: ConfirmarB_Cargado,
+            error: errores
+        });
+    }
+    else {
+        return false;
+    }
+}
+
+function ConfirmarB_Cargado(Respuesta)
+{
+    alert("Confirmado");
+    self.location = "RecepciondePacientes.aspx";
+}
+

@@ -1,0 +1,203 @@
+USE [Hospital]
+GO
+
+/****** Object:  Table [dbo].[Fact_Presupuesto_Cab]    Script Date: 07/16/2013 09:55:49 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+SET ANSI_PADDING ON
+GO
+
+CREATE TABLE [dbo].[Fact_Presupuesto_Cab](
+	[Presupuesto_Id] [bigint] IDENTITY(1,1) NOT NULL,
+	[Fecha] [datetime] NOT NULL,
+	[ServicioId] [bigint] NOT NULL,
+	[Paciente] [varchar](50) NOT NULL,
+	[SeccionalId] [bigint] NOT NULL,
+	[InstitucionId] [bigint] NOT NULL,
+	[EspecialidadId] [bigint] NOT NULL,
+	[MedicoId] [bigint] NOT NULL,
+	[Baja] [bit] NULL,
+ CONSTRAINT [PK_Fact_Presupuesto_Cab] PRIMARY KEY CLUSTERED 
+(
+	[Presupuesto_Id] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+SET ANSI_PADDING OFF
+GO
+
+
+
+-------------------------------------------------------------------------------------------------------
+
+ALTER PROCEDURE H2_FACT_PRESUPUESTO_CAB_INSERT
+@ServicioId bigint,
+@Paciente varchar(50),
+@SeccionalId bigint,
+@InstitucionId bigint,
+@EspecialidadId bigint,
+@MedicoId bigint
+AS
+INSERT INTO [Hospital].[dbo].[Fact_Presupuesto_Cab]
+           ([ServicioId]
+           ,[Paciente]
+           ,[SeccionalId]
+           ,[InstitucionId]
+           ,[EspecialidadId]
+           ,[MedicoId]
+           ,Fecha)
+     VALUES
+           (@ServicioId
+           ,@Paciente
+           ,@SeccionalId
+           ,@InstitucionId
+           ,@EspecialidadId
+           ,@MedicoId
+           ,GETDATE())
+
+
+SELECT @@IDENTITY AS PresupuestoId
+---------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE H2_FACT_PRESUPUESTOS_DET_INSERT
+@PresupuestoId bigint
+,@PracticaId bigint
+,@FechaRendicion date
+,@FechaPractica date
+,@Tipo varchar(2)
+,@Modulo bit
+,@Practica bit
+,@Facturar bit
+,@Cantidad int
+,@Precio money
+,@Total money
+AS
+INSERT INTO [Hospital].[dbo].[Fact_Presupuesto_Det]
+           ([PresupuestoId]
+           ,[PracticaId]
+           ,[FechaRendicion]
+           ,[FechaPractica]
+           ,[Tipo]
+           ,[Modulo]
+           ,[Practica]
+           ,[Facturar]
+           ,[Cantidad]
+           ,[Precio]
+           ,[Total])
+     VALUES
+           (@PresupuestoId
+           ,@PracticaId
+           ,@FechaRendicion
+           ,@FechaPractica
+           ,@Tipo
+           ,@Modulo
+           ,@Practica
+           ,@Facturar
+           ,@Cantidad
+           ,@Precio
+           ,@Total)
+---------------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE H2_FACT_PRESUPUESTO_DET_PRINT
+@Presupuesto_Id bigint
+AS
+SELECT     Det.Tipo, Det.Cantidad, Det.PracticaId, Det.Precio, Det.Total, ISNULL(P.Descripcion, M.Descripcion) AS Practica
+FROM         Fact_Presupuesto_Det AS Det LEFT OUTER JOIN
+                      Practica AS P ON Det.PracticaId = P.Codigo LEFT OUTER JOIN
+                      Modulos AS M ON Det.PracticaId = M.Codigo
+WHERE Det.PresupuestoId = @Presupuesto_Id
+
+-------------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE H2_FACT_PRESUPUESTO_PRINT_CAB
+@PresupuestoId bigint
+AS
+SELECT     Cab.Presupuesto_Id, Cab.Fecha, Cab.Paciente, Cab.Diagnostico, Cab.Incluye, Cab.NoIncluye, SERVICIOS.SERV_DESCRIPCION as Servicio, 
+Medico.ApellidoYNombre as Medico, Especialidad.Descripcion as Especialidad
+FROM         Fact_Presupuesto_Cab AS Cab LEFT OUTER JOIN
+                      Especialidad ON Cab.EspecialidadId = Especialidad.Id LEFT OUTER JOIN
+                      Medico ON Cab.MedicoId = Medico.Id LEFT OUTER JOIN
+                      SERVICIOS ON Cab.ServicioId = SERVICIOS.SERV_ID
+WHERE (Cab.Presupuesto_Id = @PresupuestoId or @PresupuestoId = 0)
+
+----------------------------------------------------------------------------------------------------------
+
+USE [Hospital]
+GO
+
+/****** Object:  Table [dbo].[Fact_Presupuesto_Det]    Script Date: 07/16/2013 16:57:07 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+SET ANSI_PADDING ON
+GO
+
+CREATE TABLE [dbo].[Fact_Presupuesto_Det](
+	[PresupuestoId] [bigint] NOT NULL,
+	[PracticaId] [bigint] NOT NULL,
+	[FechaRendicion] [date] NOT NULL,
+	[FechaPractica] [date] NOT NULL,
+	[Tipo] [varchar](2) NULL,
+	[Modulo] [bit] NULL,
+	[Practica] [bit] NULL,
+	[Facturar] [bit] NULL,
+	[Cantidad] [int] NOT NULL,
+	[Precio] [money] NOT NULL,
+	[Total] [money] NOT NULL,
+ CONSTRAINT [PK_Fact_Presupuesto_Det] PRIMARY KEY CLUSTERED 
+(
+	[PresupuestoId] ASC,
+	[PracticaId] ASC
+)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+
+SET ANSI_PADDING OFF
+GO
+--------------------------------------------------------------------------------------------------------
+
+ALTER PROCEDURE H2_FACT_PRESUPUESTO_CAB_LIST
+@PresupuestoId bigint,
+@SeccionalId bigint,
+@InstitucionId bigint,
+@Desde date,
+@Hasta date
+AS
+select Cab.Presupuesto_Id ,Cab.Fecha,Cab.Paciente,(CASE WHEN Cab.SeccionalId <> 998 THEN Sec.Seccional ELSE OS.Descripcion END) AS Seccional
+from Fact_Presupuesto_Cab AS Cab
+INNER JOIN Seccionales AS Sec ON Cab.SeccionalId = Sec.Numero
+INNER JOIN ObraSocial AS OS ON OS.Id = Cab.InstitucionId
+WHERE (Cab.Presupuesto_Id = @PresupuestoId or @PresupuestoId = 0) AND (Cab.SeccionalId = @SeccionalId or @SeccionalId = 0)
+AND (Cab.InstitucionId = @InstitucionId or @InstitucionId = 0) AND (Convert(date,Cab.Fecha) between @Desde and @Hasta)
+ORDER BY cab.Presupuesto_Id
+
+-------------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE H2_FACT_PRESUPUESTO_CAB_LIST_BYID
+@PresupuestoId bigint
+AS
+select *
+from Fact_Presupuesto_Cab AS Cab
+WHERE (Cab.Presupuesto_Id = @PresupuestoId)
+
+---------------------------------------------------------------------------------------------------------
+
+ALTER PROCEDURE H2_FACT_PRESUPUESTO_LIST_DET_BYYD
+@PresupuestoId bigint
+AS
+SELECT     Det.PresupuestoId, Det.PracticaId, Det.FechaRendicion, Det.FechaPractica, Det.Tipo, Det.Modulo, Det.Practica, 
+Det.Facturar, Det.Cantidad, Det.Precio, Det.Total, (CASE WHEN Det.Practica = 1 THEN P.Descripcion ELSE M.Descripcion END) as PracticaDesc
+FROM         Fact_Presupuesto_Det AS Det LEFT OUTER JOIN
+                      Practica AS P ON Det.PracticaId = P.Id LEFT OUTER JOIN
+                      Modulos AS M ON Det.PracticaId = M.Codigo
+where PresupuestoId = @PresupuestoId

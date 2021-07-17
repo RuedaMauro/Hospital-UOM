@@ -1,0 +1,89 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for Turnos
+/// </summary>
+public class TurnosListaenTurnos
+{
+    public TurnosListaenTurnos()
+	{
+		//
+		// TODO: Add constructor logic here
+		//
+	}    
+    public int MovitoCanceladoId { get; set; }
+    public bool SobreTurno { get; set; }
+    public string CentroDescripcion { get; set; }
+    public string NombrePaciente { get; set; }
+    public decimal AfiliadoID { get; set; }
+    public long NHC { get; set; }
+    public string EspecialidadDescripcion { get; set; }
+    public string NombreMedico { get; set; }
+    public string Fecha { get; set; }
+    public string Hora { get; set; }
+    public string DiaSemana { get; set; }
+    public int MedicoId { get; set; }
+    public int EspecialidadId { get; set; }
+    public int CentroId { get; set; }
+    public bool EsCancelado { get; set; }
+    public bool Ocupado { get; set; }
+    public string Clase { get; set; }
+    public string Telefono { get; set; }
+    public bool EsConfirmado { get; set; }
+    public string ClaseAtencion { get; set; }
+    //public string Link { get; set; }
+}
+
+public class TurnosListaenTurnosLista :List<TurnosListaenTurnos>
+{
+}
+
+
+public class TurnosOtorgados
+{
+    public string Hora { get; set; }
+    public string Fecha { get; set; }
+    public string Medico { get; set; }
+    public string Especialidad { get; set; }
+    public int MedicoId { get; set; }
+    public int EspecialidadId { get; set; }
+}
+
+
+public class Impresion_Turnos
+{
+    public string PiePagina { get; set; }
+    public string Usuario { get; set; }
+    public string NroTurno { get; set; }
+    public string FechaHora { get; set; }
+    public string Medico { get; set; }
+    public string Consultorio { get; set; }
+    public string Especialidad { get; set; }
+    public string Paciente { get; set; }
+    public string NHC { get; set; }
+    public string Seccional { get; set; }
+    public string ObraSocial { get; set; }
+    public string Observaciones { get; set; }
+    public string PiePagina2 { get; set; }
+    public string PiePagina3 { get; set; }
+    public string TelefonoTurno { get; set; }
+    public string HorariodeTurnos { get; set; }
+    public string RazonSocial { get; set; }
+    public bool SobreTurno { get; set; }
+    public bool TurnoTelefonico { get; set; }
+    public string PacienteTelefono { get; set; }
+    public string UsuarioNombre { get; set; }
+    public string HorariodeTurnosPersonalmente { get; set; }
+}
+
+public class TurnosTodos
+{
+    public string fecha { get; set; }
+    public string especialidad { get; set; }
+    public string medico { get; set; }
+    public string paciente { get; set; }
+    public string telefono { get; set; }
+}

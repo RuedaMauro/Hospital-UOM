@@ -1,0 +1,273 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for atconsultorio
+/// </summary>
+public class atconsultorio
+{
+    public atconsultorio()
+    {
+        //
+        // TODO: Add constructor logic here
+        //
+    }
+
+    public string Fecha { get; set; }
+    public string Hora { get; set; }
+    public string Medico { get; set; }
+    public string Especialidad { get; set; }
+    public string Consultorio { get; set; }
+    public string Usado { get; set; }
+    public string Documento { get; set; }
+    public int TurnoId { get; set; }
+    public int EspecialidadId { get; set; }
+}
+
+public class listapacientes
+{
+    public string Fecha { get; set; }
+    public string NHC { get; set; }
+    public string Paciente { get; set; }
+    public string Seccional { get; set; }
+    public string LLamadoI { get; set; }
+    public string LLamadoF { get; set; }
+    public string Estado { get; set; }
+}
+
+public class certificadosmedicosImpresion
+{
+    public string NHC { get; set; }
+    public int Id { get; set; }
+    public string Indicaciones { get; set; }
+    public string Fecha { get; set; }
+    public string Medico { get; set; }
+    public string Paciente { get; set; }
+    public string Seccional { get; set; }
+
+}
+
+
+public class ordenesdeestudios
+{
+    public int protocolo { get; set; }
+    public string NHC { get; set; }
+    public string fechainicio { get; set; }
+    public string fechaentrega { get; set; }
+    public string medicoid { get; set; }
+    public string diagnosticoid { get; set; }
+    public string autorizanteid { get; set; }
+    public string periodosolicitdo { get; set; }
+    public string eliminado { get; set; }
+    public string patologiaid { get; set; }
+}
+
+
+public class ordenesdeestudiospracticas
+{
+    public int PracticaId { get; set; }
+    public int Codigo { get; set; }
+    public string Nombre { get; set; }
+    public string eliminado { get; set; }
+    public string protocolo { get; set; }
+    public string fecha { get; set; }
+    public string Observacion { get; set; }
+    public string Estado { get; set; }
+}
+
+public class ordenesdeestudiosbuscar
+{
+    public long protocolo { get; set; }
+    public string NHC { get; set; }
+    public string fechaingreso { get; set; }
+    public string documento { get; set; }
+    public string paciente { get; set; }
+    public string medicoid { get; set; }
+}
+
+public class ordentraslado
+{
+    public long protocolo { get; set; }
+    public long NHC { get; set; }
+    public string Fecha_Atencion { get; set; }
+    public int Medico_Id { get; set; }
+    public string Comun { get; set; }
+    public string Utim { get; set; }
+    public string Neonatal { get; set; }
+    public string Diagnostico { get; set; }
+    public string Observaciones { get; set; }
+    public string Desde_Traslado { get; set; }
+    public string Localidad_Traslado { get; set; }
+    public string Calles_Traslado { get; set; }
+    public string Hasta_Traslado { get; set; }
+    public string Localidad_Traslado_Hasta { get; set; }
+    public string Horario_Destino { get; set; }
+    public bool Con_Regreso { get; set; }
+    public bool De_Ambula { get; set; }
+    public string Empresa { get; set; }
+    public string Operador_Sol { get; set; }
+    public string Fecha_Sol { get; set; }
+    public string Hora_Sol { get; set; }
+    public string Operador_Recep { get; set; }
+    public string Fecha_Recep { get; set; }
+    public string Hora_Recep { get; set; }
+    public string Calles_Destino { get; set; }
+}
+
+public class monodrogas
+{
+    public int id { get; set; }
+    public int numero { get; set; }
+    public string nombre { get; set; }
+    public bool activo { get; set; }
+
+}
+
+public class insumos_medidas
+{
+    public int id { get; set; }
+    public string medida { get; set; }
+}
+
+public class insumos_presentacion
+{
+    public int id { get; set; }
+    public string presentacion { get; set; }
+}
+
+
+public class recetasmonodrogas
+{
+    public int monodrogascodigo { get; set; }
+    public string monodrogasnombre { get; set; }
+    public string adicional { get; set; }
+    public string dosis_diaria { get; set; }
+    public string dosis { get; set; }
+    public string observacion { get; set; }
+    public int unidad_medida_id { get; set; }
+    public string unidad_medida { get; set; }
+    public int presentacion_id { get; set; }
+    public string presentacion { get; set; }
+    public string Estado { get; set; }
+}
+
+public class recetas_cab
+{
+    public long protocolo { get; set; }
+    public long NHC { get; set; }
+    public string fechainicio { get; set; }
+    public string fechaentrega { get; set; }
+    public int medicoid { get; set; }
+    public string diagnoticoid { get; set; }
+    public int autorizanteid { get; set; }
+    public int patologia { get; set; }
+    public string periodo { get; set; }
+}
+
+public class recetas_busqueda
+{
+    public long protocolo { get; set; }
+    public long NHC { get; set; }
+    public string fechainicio { get; set; }
+    public string apellido { get; set; }
+}
+
+public class cargar_diabetes
+{
+    public long Protocolo { get; set; }
+    public int Tipo { get; set; }
+    public bool Obesidad { get; set; }
+    public bool Dislipidemia { get; set; }
+    public bool HC { get; set; }
+    public string otros { get; set; }
+    public int Retinopatia { get; set; }
+    public int Neuropatia { get; set; }
+    public int ivp { get; set; }
+    public int CI { get; set; }
+    public int Nefropatia { get; set; }
+    public int Pie { get; set; }
+    public int hta { get; set; }
+    public int tabaco { get; set; }
+    public long NHC { get; set; }
+    public int Medico_Diabetes_Id { get; set; }
+    public string MotivoModificacion { get; set; }
+    public string HbgA1C { get; set; }
+    public string HDL { get; set; }
+    public string TG { get; set; }
+    public string FRUCTOSAMINA { get; set; }
+    public string URICEMIA { get; set; }
+    public string CLEARENCEC { get; set; }
+    public string UREA { get; set; }
+    public string TGO { get; set; }
+    public string BT { get; set; }
+    public string BD { get; set; }
+    public string COLTOTAL { get; set; }
+    public string LDL { get; set; }
+    public string MICROALBUMINURIA { get; set; }
+    public string CREA { get; set; }
+    public string GLUCEMIA { get; set; }
+    public string PROTEINURIA { get; set; }
+    public string CPK { get; set; }
+    public string TGP { get; set; }
+    public string BI { get; set; }
+    public string OJO_D { get; set; }
+    public string OJO_I { get; set; }
+    public string OTROS_LABORATORIO { get; set; }
+    public string fechaanalisis { get; set; }
+    public string EVOLUCION { get; set; }
+    public string Peso { get; set; }
+    public string Talla { get; set; }
+    public string Metformina { get; set; }
+    public string Glibenciamida { get; set; }
+    public string Glicazida { get; set; }
+    public string Glimepirida { get; set; }
+    public string Glipizida { get; set; }
+    public string Rosiglitazona { get; set; }
+    public string Atorvastatina { get; set; }
+    public string Sinvastantina { get; set; }
+    public string Ezetimibe { get; set; }
+    public string Fenofibrato { get; set; }
+    public string NPH { get; set; }
+    public string Rapida { get; set; }
+    public string RapidaAnalogo { get; set; }
+    public string Lispro { get; set; }
+    public string Ultralenta { get; set; }
+    public string Mix25 { get; set; }
+    public string Mix30 { get; set; }
+    public string OTROS_MEDICAMENTOS { get; set; }
+}
+
+public class carga_general
+{ 
+public long protocolo { get; set; }
+public string patologia { get; set; }
+public string fecha { get; set; }
+public string diagnostico_cod { get; set; }
+public string observaciones { get; set; }
+public long NHC { get; set; }
+public string modificacion { get; set; }
+public string medico { get; set; }
+public string especialidad { get; set; }
+}
+
+public class servicios_hospitalario
+{
+    public int id { get; set; }
+    public string servicio { get; set; }
+}
+
+public class orden_internacion
+{
+    public long id { get; set; }
+    public string servicioid { get; set; }
+    public string diagnostico { get; set; }
+    public string ordenindicada { get; set; }
+    public string fechainternacion { get; set; }
+    public string piso { get; set; }
+    public string cama { get; set; }
+    public string indicaciones { get; set; }
+    public int medicoid { get; set; }
+    public long NHC { get; set; }
+}

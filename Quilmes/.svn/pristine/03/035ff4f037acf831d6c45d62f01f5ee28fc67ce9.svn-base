@@ -1,0 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for inicio
+/// </summary>
+public class inicio
+{
+	public inicio()
+	{
+		//
+		// TODO: Add constructor logic here
+		//
+	}
+
+    
+
+}

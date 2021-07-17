@@ -1,0 +1,189 @@
+﻿var Estado = 1;
+var Editando = 0;
+
+function ListarPracticas() {
+    var json = JSON.stringify({ "Practica": $('#txtPracticas').val(), "Codigo": $("#txtCodigo").val() });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Practicas/Practicas.asmx/Practicas_Listar",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Practicas_Listadas,
+        error: errores
+    });
+}
+
+$("#btn_Buscar").click(function () {
+    $("#TablaPracticas").empty();
+    ListarPracticas();
+});
+
+
+$("#btn_Cancelar").click(function () {
+	$("#btnAgregarPractica").hide();
+    $("#TablaPracticas").empty();
+    LimpiarCampos();
+});
+
+$("#btnAgregarPractica").click(function () {
+    Guardar();
+});
+
+
+$("#btn_Nuevo").click(function () {
+    Nueva_Practica();
+});
+
+
+
+function errores(msg) {
+    var jsonObj = JSON.parse(msg.responseText);
+    alert('Error: ' + jsonObj.Message);
+}
+
+
+$(document).ready(function () {
+
+});
+
+function Practicas_Listadas(Resultado) {
+    var Practicas = Resultado.d;
+    var Tabla_Titulo = "";
+    var Tabla_Datos = "";
+    var Tabla_Fin = "";
+    var SobreTurno = false;
+
+
+    $("#Resultado").empty();
+    $("#TablaPracticas").empty();
+
+    Tabla_Titulo = "<table id='TablaPracticas' class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th>Id</th><th>Código</th><th>Descripción</th><th>P. Facturado</th><th>P. Guardia</th><th>Estado</th></tr></thead><tbody>";
+    $.each(Practicas, function (index, practicas) {
+        Tabla_Datos = Tabla_Datos + "<tr";
+        Tabla_Datos = Tabla_Datos + " onclick=Editar(" + practicas.Id + ");";
+        Tabla_Datos = Tabla_Datos + "><td>" + practicas.Id + "</td><td id='Codigo" + practicas.Id + "'>" + practicas.Codigo + "</td><td id='Descripcion" + practicas.Id + "'>" + practicas.Descripcion + "</td><td id='PF" + practicas.Id + "'> $ " + practicas.PF + "</td><td id='PG" + practicas.Id + "'> $ " + practicas.PG + "</td><td id='Activa" + practicas.Id + "'>" + practicas.Activa + "</td></tr>";
+    });
+
+    Tabla_Fin = "</tbody></table>";
+    $("#Resultado").html(Tabla_Titulo + Tabla_Datos + Tabla_Fin);
+}
+
+function Editar(PracticaId) {
+    Editando = PracticaId;
+	$("#btnAgregarPractica").show();
+    $("#txtCodigoEdicion").val($("#Codigo" + PracticaId).html());
+    $("#txtPracticaEdicion").val($("#Descripcion" + PracticaId).html());
+    $("#txtPrecioFEdicion").val(($("#PF" + PracticaId).html()).replace('$','').replace(' ',''));
+    $("#txtPrecioGEdicion").val(($("#PG" + PracticaId).html()).replace('$', '').replace(' ', ''));
+
+    $("#btnOcularPractica").show();
+
+    if ($("#Activa" + PracticaId).html() == 'A') {
+        $("#btnOcularPractica").removeClass("btn-success");
+        $("#btnOcularPractica").removeClass("btn-danger");
+        $("#btnOcularPractica").addClass("btn-success");
+        $("#btnOcularPractica").html("Práctica Activa");
+        Estado = 1;
+    }
+    else {
+        $("#btnOcularPractica").html("Práctica <b>NO</b> Activa");
+        $("#btnOcularPractica").removeClass("btn-success");
+        $("#btnOcularPractica").removeClass("btn-danger");
+        $("#btnOcularPractica").addClass("btn-danger");
+        Estado = 0;
+        
+    }
+
+}
+
+function LimpiarCampos() {
+    Editando = 0;
+    $("#btnOcularPractica").hide();
+    $("#txtCodigoEdicion").val('');
+    $("#txtPracticaEdicion").val('');
+    $("#txtPrecioFEdicion").val('');
+    $("#txtPrecioGEdicion").val('');
+        $("#btnOcularPractica").removeClass("btn-success");
+        $("#btnOcularPractica").removeClass("btn-danger");
+        $("#btnOcularPractica").html("");
+        Estado = 0;
+    }
+
+
+    function Guardar() {
+		if (!Validar()) { return false; }
+        var json = JSON.stringify({ "Practica": $('#txtPracticaEdicion').val(), "Codigo": $("#txtCodigoEdicion").val(), "FE": $("#txtPrecioFEdicion").val(), "FG": $("#txtPrecioGEdicion").val(), "Id": Editando, "Estado": Estado });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Practicas/Practicas.asmx/Practicas_Guardar",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Practicas_Guardar_Guardadas,
+            error: errores
+        });
+    }
+
+    function Validar() {
+        if ($('#txtPracticaEdicion').val() == '') { alert("Falta Cargar el nombre de la Práctica"); return false; }
+        if ($('#txtCodigoEdicion').val() == '') { alert("Falta Cargar el código de la Práctica"); return false; }
+        if ($('#txtPrecioFEdicion').val() == '') { alert("Falta Cargar el Precio en consultorio de la Práctica"); return false; }
+        if ($('#txtPrecioGEdicion').val() == '') { alert("Falta Cargar el Precio en Guardia de la Práctica"); return false; }
+        return true;
+    }
+	
+    function Practicas_Guardar_Guardadas() {
+        LimpiarCampos();
+        ListarPracticas();
+        alert("Practica Guardada");
+    }
+
+
+    function Nueva_Practica() {
+		if (!Validar()) { return false; }
+        var json = JSON.stringify({
+            "Practica": $('#txtPracticaEdicion').val(),
+            "Codigo": $("#txtCodigoEdicion").val(),
+            "FE": $("#txtPrecioFEdicion").val(),
+            "FG": $("#txtPrecioGEdicion").val()
+        });
+
+        $.ajax({
+            type: "POST",
+            url: "../Json/Practicas/Practicas.asmx/Practica_Nueva",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Nueva_Practica_Guardadas,
+            error: errores
+        });
+    }
+
+    function Nueva_Practica_Guardadas() {
+        LimpiarCampos();
+        ListarPracticas();
+        alert("Practica Creada");
+    }
+
+
+    $("#btnOcularPractica").click(function () {
+
+        if ($("#btnOcularPractica").hasClass("btn-danger"))
+    {
+        $("#btnOcularPractica").removeClass("btn-success");
+        $("#btnOcularPractica").removeClass("btn-danger");
+        $("#btnOcularPractica").addClass("btn-success");
+        $("#btnOcularPractica").html("Práctica Activa");
+        Estado = 1;
+    }
+    else {
+        $("#btnOcularPractica").html("Práctica <b>NO</b> Activa");
+        $("#btnOcularPractica").removeClass("btn-success");
+        $("#btnOcularPractica").removeClass("btn-danger");
+        $("#btnOcularPractica").addClass("btn-danger");
+        Estado = 0;
+
+    }
+
+});

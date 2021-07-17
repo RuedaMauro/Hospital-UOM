@@ -1,0 +1,510 @@
+﻿var Id = 0;
+var objMedicamento = Array();
+var Total = -1;
+var Editando = 0;
+var EditandoPos = 0;
+var objMedicamentos = new Array();
+var objMedicamentos2 = {};
+
+$(document).ready(function () {
+    var Query = {};
+    Query = GetQueryString();
+    Id = Query['Id'];
+    if (Id > 0) {
+        ListaCirugia();
+    }
+});
+
+$("#btnVolver").click(function () {
+    window.location = "PlanificarCirugia.aspx?Id=" + Id;
+});
+
+function imgErrorPaciente(image) {
+    image.onerror = "";
+    image.src = "../img/silueta.jpg";
+    return true;
+}
+
+function GetQueryString() {
+    var querystring = location.search.replace('?', '').split('&');
+    // declare object
+    var queryObj = {};
+    // loop through each name-value pair and populate object
+    for (var i = 0; i < querystring.length; i++) {
+        // get name and value
+        var name = querystring[i].split('=')[0];
+        var value = querystring[i].split('=')[1];
+        // populate object
+        queryObj[name] = value;
+    }
+    return queryObj;
+}
+
+$("#txt_dni").keypress(function (event) {
+    if (event.which == 13) {
+        if ($('#txt_dni').attr('readonly') == undefined) {
+            Cargar_Paciente_Documento($("#txt_dni").val());
+        }
+
+    }
+});
+
+function Cargar_Paciente_NHC(NHC) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/CargarPacienteNHC",
+        data: '{NHC: "' + NHC + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_NHC_Cargado,
+        error: errores
+    });
+}
+
+
+function Cargar_Paciente_NHC_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+    $.each(Paciente, function (index, paciente) {
+
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+        $("#txtPaciente").attr('value', paciente.Paciente);
+        $("#txtNHC").attr('value', paciente.cuil);
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.documento + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+            $("#desdeaqui").focus();
+        }
+
+    });
+}
+
+
+
+
+function Cargar_Paciente_Documento(Documento) {
+    $.ajax({
+        type: "POST",
+        url: "../Json/DarTurnos.asmx/Cargar_Paciente_Documento",
+        data: '{Documento: "' + Documento + '"}',
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Cargar_Paciente_Documento_Cargado,
+        error: errores
+    });
+}
+
+function errores(msg) {
+    alert('Error: ' + msg.responseText);
+}
+
+function Cargar_Paciente_Documento_Cargado(Resultado) {
+    var Paciente = Resultado.d;
+    var PError = false;
+    $.each(Paciente, function (index, paciente) {
+
+        $("#txt_dni").prop("readonly", true);
+        $("#txtNHC").prop("readonly", true);
+
+        $("#txtPaciente").attr('value', paciente.Paciente);
+        $("#txtNHC").attr('value', paciente.cuil);
+
+        $("#CargadoApellido").html(paciente.Paciente);
+
+        var AnioActual = new Date();
+        var AnioNacimiento = new Date(parseJsonDate(paciente.fecha_nacimiento));
+
+
+        var edad = AnioActual.getFullYear() - AnioNacimiento.getFullYear();
+        if (AnioNacimiento.getFullYear() == 0) {
+            edad = S / FN;
+        }
+        $("#CargadoEdad").html(edad);
+        $("#CargadoDNI").html(paciente.documento);
+        $("#CargadoNHC").html(paciente.cuil);
+        $("#CargadoTelefono").html(paciente.Telefono);
+        $("#CargadoSeccional").html(paciente.Seccional);
+        $('#fotopaciente').attr('src', '../img/Pacientes/' + paciente.documento + '.jpg');
+
+        if (PError) {
+            $("#desdeaqui").hide();
+        }
+        else {
+            $("#desdeaqui").show();
+            $("#desdeaqui").focus();
+        }
+
+    });
+}
+
+
+function ListaCirugia() {
+    var json = JSON.stringify({ "Id": Id, "Fecha": null, "Baja":false});
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/ListaCirugias_Id",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: ListaCirugia_Cargado,
+        error: errores
+    });
+}
+
+function ListaCirugia_Cargado(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, Cirugia) {
+        Cargar_Paciente_NHC(Cirugia.nhc);
+        $("#CargadoFecha").html(Cirugia.fecha);
+        GetAnestesista(Cirugia.anestesista_id);
+        GetAnestesia(Cirugia.anestesia_tipo_id);
+        GetCama(Cirugia.cama_id);
+        Medico_Buscar(Cirugia.medico_solicitante);
+        GetDiagnostico(Cirugia.diagnostico_id);
+        CargarProtesis();
+    });
+    $("#hastaaqui").fadeIn(1500);
+    $('html, body').animate({ scrollTop: $("#hastaaqui").offset().top - 20 }, 500);
+    $('.container').height($('html').height() + ($('.contenedor_1').height() -
+				$('.pie').height() -
+				$('#hastaaqui').height()));
+}
+
+function GetAnestesista(Id) {
+    var json = JSON.stringify({ "Id": Id });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Medicos.asmx/MedicoBuscar_Info",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetAnestesista_Cargado,
+        error: errores
+    });
+}
+
+function GetAnestesista_Cargado(Resultado) {
+    var Medico = Resultado.d;
+        $("#CargadoAnestesista").html(Medico.Medico);
+}
+
+
+function GetAnestesia(Id) {
+    var json = JSON.stringify({ "Id": Id, "estado": true });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/ListaAnestesia",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetAnestesia_Cargado,
+        error: errores
+    });
+}
+
+function GetAnestesia_Cargado(Resultado) {
+    var Anes = Resultado.d;
+    $.each(Anes, function (index, Ane) {
+        $("#CargadoAnestesia").html(Ane.tipo);
+    });
+}
+
+
+function GetCama(Id) {
+    var json = JSON.stringify({ "IdCama": Id, "Sala": 0 });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Internaciones/IntSSC.asmx/Lista_Camas",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetCama_Cargado,
+        error: errores
+    });
+}
+
+function GetCama_Cargado(Resultado) {
+    var Camas = Resultado.d;
+    $.each(Camas, function (index, Cama) {
+        $("#CargadoCama").html(Cama.descripcion);
+    }); 
+}
+
+function GetDiagnostico(Id) {
+    var json = JSON.stringify({ "Id": Id, "estado": true });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/Diagnostico",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GetDiagnostico_Cargado,
+        error: errores
+    });
+}
+
+function GetDiagnostico_Cargado(Resultado) {
+    var Diags = Resultado.d;
+    $.each(Diags, function (index, Diag) {
+        $("#CargadoDiagnostico").html(Diag.diagnostico);
+    });
+}
+
+function Medico_Buscar(Id) {
+    var json = JSON.stringify({ "Id": Id });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Medicos.asmx/MedicoBuscar_Info",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: Medico_Buscar_Cargado,
+        error: errores
+    });
+}
+
+function Medico_Buscar_Cargado(Resultado){
+    var Medico = Resultado.d;
+    $("#CargadoMedico").html(Medico.Medico);
+}
+
+
+//Guardar PreAnestesico e Imprimir
+$("#btnConfirmar").click(function () {
+    DeleteDetalles();
+});
+
+function Impresion(Resultado) {
+    var r = Resultado.d;
+    if (r > 0) {
+        $.fancybox(
+        {
+            'autoDimensions': false,
+            'href': '../Impresiones/ProtesisyOtros.aspx?Id=' + Id,
+            'width': '75%',
+            'height': '75%',
+            'autoScale': false,
+            'transitionIn': 'none',
+            'transitionOut': 'none',
+            'type': 'iframe',
+            'hideOnOverlayClick': false,
+            'enableEscapeButton': false,
+            'onClosed': function () {
+                window.location.href = "PlanificarCirugia.aspx?Id=" + Id;
+            }
+        });
+    }
+    else alert("Error al Guardar Protesis!!");
+}
+
+function DeleteDetalles() {
+    var json = JSON.stringify({ "Id": Id});
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/Borrar_ProtesisyOtros",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: GuardarCab,
+        error: errores
+    });
+}
+
+function GuardarCab(Resultado) {
+    var r = Resultado.d;
+    if (r > 0) {
+        var p = {};
+        p.id = Id;
+        p.servicio = $("#Servicio").val();
+        p.ortopedia = $("#Ortopedia").val();
+        if ($("#MaterialUOM").is(':checked') == true)
+            p.material = true;
+        else
+            p.material = false;
+        var json = JSON.stringify({ "p": p });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Quirofano/Quirofano_.asmx/Guardar_Protesis_Cab",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: GuardarDetalles,
+            error: errores
+        });
+    }
+}
+
+function GuardarDetalles(Resultado) {
+    for (var j = 0; j <= Total; j++) {
+        var json = JSON.stringify({ "p": objMedicamentos[j] });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Quirofano/Quirofano_.asmx/Guardar_Protesis_Det",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: Impresion,
+            error: errores
+        });
+    }
+}
+
+$("#btnAgregarMedicamento").click(function () {
+    nombre = $("#Insumo").val();
+    cantidad = parseInt($("#cantidad").val());
+    var Estado = 1;
+    var Cual = Total;
+    if (Editando == 1) {
+        Cual = EditandoPos;
+    }
+    else {
+        Total = Total + 1;
+        Cual = Total;
+    }
+    objMedicamento = {};
+    objMedicamento.nombre = nombre;
+    objMedicamento.operacion_Id = Id;
+    objMedicamento.cantidad = cantidad;
+    objMedicamento.Estado = Estado;
+    objMedicamentos[Cual] = objMedicamento;
+    RenderizarTabla();
+    Editando = 0;
+    EditandoPos = -1;
+    LimpiarCampos();
+    //alert(Total);
+});
+
+$("#btnCancelarMedicamento").click(function () {
+    Editando = 0;
+    EditandoPos = -1;
+    $("#btnAgregarMedicamento").html("<i class='icon-plus-sign icon-white'></i> Agregar");
+    $("#btnCancelarMedicamento").html("<i class='icon-remove-circle icon-white'></i> Cancelar");
+    LimpiarCampos();
+});
+
+function RenderizarTabla() {
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Insumo/Protesis</th><th>Cantidad</th></tr></thead><tbody>";
+    var Contenido = "";
+    // alert('paso');
+    for (var i = 0; i <= Total; i++) {
+        //Estado = 0 es Borrado
+        if (objMedicamentos[i].Estado == 1) {
+            Contenido = Contenido + "<tr><td><a id='Editar" + i + "' onclick='Editar(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Medicamento'><i class='icon-edit'></i></a><a id='Elminar" + i + "'onclick='Eliminar(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Medicamento'><i class='icon-remove-circle icon-white'></i></a></td><td> " + objMedicamentos[i].nombre + " </td><td> " + objMedicamentos[i].cantidad + " </td></tr>";
+        }
+
+    }
+
+    var Pie = "</tbody></table>";
+    $("#TablaMedicamentos").html(Encabezado + Contenido + Pie);
+
+    if ($("[rel=tooltip]").length) {
+        $("[rel=tooltip]").tooltip();
+    }
+}
+
+function Editar(Nro) {
+    Editando = 1;
+    EditandoPos = Nro;
+    $("#cantidad").val(objMedicamentos[Nro].cantidad);
+    $("#Insumo").val(objMedicamentos[Nro].nombre);
+    $("#btnAgregarMedicamento").html("<i class='icon-plus-sign icon-white'></i> Aceptar Cambio");
+    $("#btnCancelarMedicamento").html("<i class='icon-remove-circle icon-white'></i> Cancelar Cambio");
+
+}
+
+function Eliminar(Nro) {
+    objMedicamentos[Nro].Estado = 0;
+    RenderizarTabla();
+    objMedicamentos = $.grep(objMedicamentos, function (value) {
+        return value.Estado != 0;
+    });
+    Total = Total - 1;
+}
+
+function LimpiarCampos() {
+    $("#cantidad").val("");
+    $("#Insumo").val("");
+}
+
+function CargarProtesis() {
+    var json = JSON.stringify({ "Id": Id });
+    $.ajax({
+        type: "POST",
+        url: "../Json/Quirofano/Quirofano_.asmx/Protesis_CAB",
+        data: json,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: CargarProtesisDetalle,
+        error: errores
+    });
+}
+
+function CargarProtesisDetalle(Resultado) {
+    var Lista = Resultado.d;
+    $.each(Lista, function (index, p) {
+        $("#Servicio").val(p.servicio);
+        $("#Ortopedia").val(p.ortopedia);
+        if (p.material == true)
+            $("#MaterialUOM").attr('checked', true);
+        else
+            $("#MaterialUOM").attr('checked', false);
+        var json = JSON.stringify({ "Id": Id });
+        $.ajax({
+            type: "POST",
+            url: "../Json/Quirofano/Quirofano_.asmx/Protesis_Lista_Det",
+            data: json,
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: CargarTabla,
+            error: errores
+        });
+    });
+
+}
+
+function CargarTabla(Resultado) {
+    var Lista = Resultado.d;
+    var Encabezado = "<table class='table table-hover table-condensed' style='width: 100%;'><thead><tr><th></th><th>Protesis/Insumo</th><th>Cantidad</th></tr></thead><tbody>";
+    var Contenido = "";
+    var i = 0;
+    $.each(Lista, function (index, p) {
+        Contenido = Contenido + "<tr><td><a id='Editar" + i + "' onclick='Editar(" + i + ");' class='btn btn-mini' rel='tooltip' title='Editar Medicamento'><i class='icon-edit'></i></a><a id='Elminar" + i + "'onclick='Eliminar(" + i + ");' class='btn btn-mini btn-danger' rel='tooltip' title='Quitar Medicamento'><i class='icon-remove-circle icon-white'></i></a></td><td> " + p.nombre + " </td><td> " + p.cantidad + " </td></tr>";
+        objMedicamento = {};
+        objMedicamento.nombre = p.nombre;
+        objMedicamento.cantidad = p.cantidad;
+        objMedicamentos[i] = objMedicamento;
+        objMedicamentos2[i] = objMedicamento;
+        objMedicamentos[i].Estado = 1;
+        Total = Total + 1;
+        i = i + 1;
+    });
+    var Pie = "</tbody></table>";
+    $("#TablaMedicamentos").html(Encabezado + Contenido + Pie);
+}
+
+
+
+
+     

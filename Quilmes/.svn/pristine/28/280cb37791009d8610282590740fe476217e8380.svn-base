@@ -1,0 +1,156 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+
+using Microsoft.Reporting.WebForms;
+using System.Web.Configuration;
+
+using HospitalBLL.Entities;
+using Hospital;
+
+public partial class Impresion_Resolucion28 : System.Web.UI.Page
+{
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            if (!string.IsNullOrEmpty(Request.QueryString["Id"]))
+            {
+            ViewState["Id"] = Request.QueryString["Id"];
+            }
+            pacientes p = new pacientes();
+            PacientesBLL pbll = new PacientesBLL();
+            Resolucion28 r = new Resolucion28();
+            QuirofanoBLL q = new QuirofanoBLL();
+            MedicosBLL m = new MedicosBLL();
+            r = q.CargarResolucion(Convert.ToInt32(Request.QueryString["Id"].ToString()));
+
+            //HospitalBLL.Entities.Quirofano c = new HospitalBLL.Entities.Quirofano();
+            //c = DatosCirugia(Convert.ToInt32(Request.QueryString["Id"].ToString()));
+
+            
+            Quirofano c = new Quirofano();
+            c = q.Quirofano_CirugiaList(Convert.ToInt32(Request.QueryString["Id"]), null, false)[0];
+
+
+
+            p = pbll.Paciente_NHC(Convert.ToInt64(r.nhc))[0];
+
+            ReportParameter[] parameters = new ReportParameter[37];
+
+
+            
+            parameters[0] = new ReportParameter("C1", Valor(r.circulante_confirma) );
+            parameters[1] = new ReportParameter("C2", Valor(r.paciente_puede_responder));
+            parameters[2] = new ReportParameter("C3", Valor(r.control_de_equipamento_anestesia));
+            parameters[3] = new ReportParameter("C4", Valor(r.oximetro_de_pulso_colocado_y_funcionando));
+            parameters[4] = new ReportParameter("C5", Valor(r.verificacion_de_existencia_de_alergia_conocidas));
+            parameters[5] = new ReportParameter("C6", Valor(r.chequeo_de_via_aerea));
+            parameters[6] = new ReportParameter("C7", Valor(r.verificacion_de_profilaxis_antibioticos));
+            parameters[7] = new ReportParameter("C8", Valor(r.equipos_quirurgicos_conoce_comorbilidades));
+            parameters[8] = new ReportParameter("C9", Valor(r.demarcacion_de_sitios));
+            parameters[9] = new ReportParameter("C10", Valor(r.chequeo_de_disponibilidad_de_estudio_complementario));
+            parameters[10] = new ReportParameter("C11", Valor(r.verificacion_de_riesgos_hemorragia));
+            parameters[11] = new ReportParameter("C12", Valor(r.confirmacion_esterilidad));
+            parameters[12] = new ReportParameter("C13", Valor(r.cirujano_e_instrumentadora_verificaron_materiales));
+            parameters[13] = new ReportParameter("C14", Valor(r.chequeo_del_correcto_funcionamiento_de_todos));
+            
+            parameters[14] = new ReportParameter("D1", Valor(r.que_todos_los_miembros_del_equipo_q_presentes));
+            parameters[15] = new ReportParameter("D2", Valor(r.que_todos_los_miembros_del_equipo_s_h_presentados));
+            parameters[16] = new ReportParameter("D3", Valor(r.cirujano_circulante_anestesista_corfirman_verbalmente));
+            parameters[17] = new ReportParameter("D4", Valor(r.chequeo_de_control_de_decubitos_y_f));
+            parameters[18] = new ReportParameter("D5", Valor(r.el_cirujano_revisa_en_voz));
+            parameters[19] = new ReportParameter("D6", Valor(r.anestesista_revisa_en_voz));
+
+            parameters[20] = new ReportParameter("E1", Valor(r.el_nombre_del_procedimiento_realizado));
+            parameters[21] = new ReportParameter("E2", Valor(r.el_recuento_de_instrumental));
+            parameters[22] = new ReportParameter("E3", Valor(r.rotulado_de_muestras));
+            parameters[23] = new ReportParameter("E4", Valor(r.si_se_detectaron_problemas));
+            parameters[24] = new ReportParameter("E5", Valor(r.cirujano_anestesista_y_circulante_revisaran));
+            parameters[25] = new ReportParameter("E6", Valor(r.transpaso_escrito_de_medicamentos));
+            parameters[26] = new ReportParameter("E7", Valor(r.control_de_normotermia));
+            
+            parameters[27] = new ReportParameter("E8", Valor(r.parte_quirurgicos_c));
+            parameters[28] = new ReportParameter("E9", Valor(r.parte_anestesicos_c));
+
+            parameters[29] = new ReportParameter("Observaciones", "Observaciones: " + r.observaciones);
+            try
+            {
+                parameters[30] = new ReportParameter("Circulante", m.Medicos_Buscar_Info(c.Circulante_id).Medico);
+            }
+            catch
+            {
+                parameters[30] = new ReportParameter("Circulante", "");
+            }
+
+            try
+            {
+                parameters[31] = new ReportParameter("Anestesista", m.Medicos_Buscar_Info(c.anestesista_id).Medico);
+            }
+            catch
+            {
+                parameters[31] = new ReportParameter("Anestesista", "");
+            }
+
+            try
+            {
+                parameters[32] = new ReportParameter("Cirujano", m.Medicos_Buscar_Info(c.cirujano_id).Medico);
+            }
+            catch
+            {
+                parameters[32] = new ReportParameter("Cirujano", "");
+            }
+            parameters[33] = new ReportParameter("Paciente", "Paciente: " + p.Paciente);
+            parameters[34] = new ReportParameter("Procedimiento", "Procedimiento: " + q.Cirugia_Tipo(c.cirugia_tipo_id)[0].tipo);
+            parameters[35] = new ReportParameter("DNI", "DNI: " + p.documento);
+            parameters[36] = new ReportParameter("nhc", "NHC: "+ p.NHC);
+
+
+
+
+            ReportViewer1.LocalReport.EnableExternalImages = true;
+            ReportViewer1.LocalReport.SetParameters(parameters);
+            ReportViewer1.LocalReport.Refresh();
+
+        }
+    }
+
+    private string Valor(bool p)
+    {
+        if (p == true)
+        { 
+            return "Si";
+        }
+        return "No";
+    }
+
+
+    public void CrerPDF()
+    {
+        //ReportViewer1.LocalReport.ReportPath = "Impresion/ConfirmacionTurnos.rdlc";
+
+        
+            Warning[] warnings;
+            string[] streamids;
+            string mimeType;
+            string encoding;
+            string extension;
+
+            byte[] byteArray = ReportViewer1.LocalReport.Render("PDF", null, out mimeType, out encoding, out extension, out streamids, out warnings);
+
+
+            HttpContext.Current.Response.Buffer = true;
+            HttpContext.Current.Response.Clear();
+            HttpContext.Current.Response.ContentType = mimeType;
+            HttpContext.Current.Response.AddHeader("content-disposition", ("inline; filename=Resolucion28." + "PDF"));
+            HttpContext.Current.Response.BinaryWrite(byteArray);
+            HttpContext.Current.Response.Flush();
+            HttpContext.Current.Response.End();
+        
+    }
+
+}

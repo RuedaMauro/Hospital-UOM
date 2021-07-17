@@ -1,0 +1,63 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for historiaclinica
+/// </summary>
+public class historiaclinica
+{
+	public historiaclinica()
+	{
+		//
+		// TODO: Add constructor logic here
+		//
+
+     }
+    public string HClinica { get; set; }
+
+}
+
+public class lista_anios
+{
+    public string anio { get; set; }
+}
+
+public class lista_meses
+{
+    public string mes { get; set; }
+}
+
+public class registro_internacion
+{
+    public string ingreso { get; set; }
+    public string egreso { get; set; }
+    public string servicio { get; set; }
+    public string motivoingreso { get; set; }
+    public string motivoegreso { get; set; }
+    public string especialidad { get; set; }
+    public string medico { get; set; }
+    public string id { get; set; }
+}
+
+
+public class registro_cirugias
+{
+    public string fecha { get; set; }
+    public string cirugia { get; set; }
+    public string medico { get; set; }
+    public string diagnostico { get; set; }
+    public string especialidad { get; set; }
+    public string id { get; set; }
+}
+
+public class registro_ambulatorio
+{
+    public string id { get; set; }
+    public string fecha { get; set; }
+    public string especialidad { get; set; }
+    public string medico { get; set; }
+    public string diagnostico { get; set; }
+    public string tipo { get; set; }
+}

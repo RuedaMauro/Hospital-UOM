@@ -1,0 +1,117 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+/// <summary>
+/// Summary description for PacientesBLL
+/// </summary>
+namespace Hospital
+{
+    public class PacientesBLL
+    {
+        public PacientesBLL()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        public List<pacientes> Paciente_NHC(long NHC)
+        {
+            List<pacientes> lista = new List<pacientes>();
+            PacientesDALTableAdapters.H2_Afiliado_Encabezado_NHCTableAdapter adapter = new PacientesDALTableAdapters.H2_Afiliado_Encabezado_NHCTableAdapter();
+            PacientesDAL.H2_Afiliado_Encabezado_NHCDataTable aTable = adapter.GetData(NHC);
+
+            int pos = 0;
+            pacientes p = new pacientes();
+            foreach (PacientesDAL.H2_Afiliado_Encabezado_NHCRow row in aTable.Rows)
+            {
+                pos++;
+                p.Nro_Busqueda = pos;
+                p.cuil_titu = row.cuil_titu;
+                p.cuil = row.cuil;
+
+                if (!row.IsLocalidadNull()) { p.localidad = row.Localidad; }
+
+                p.documento = row.documento;
+                if (!row.Isfecha_nacimientoNull()) p.fecha_nacimiento = row.fecha_nacimiento;                
+                if (!row.IsSeccionalNull()) p.Seccional = row.Seccional;
+                if (!row.IsNro_SeccionalNull()) p.Nro_Seccional = row.Nro_Seccional.ToString(); else p.Nro_Seccional = "999";
+
+                p.Paciente = row.apellido;
+                p.Documento = row.documento;
+                if (!row.IstelefonoNull()) p.Telefono = row.telefono;
+                
+                p.Titular = "";
+                p.NHC = row.cuil;
+
+                p.ObraSocial = row.OS;
+                p.OSId = row.OSId;
+
+
+                lista.Add(p);
+            }
+
+            return lista;
+        }
+
+
+        public int Actualizar_telefono_seccional(string Telefono, int Seccional, int documento, int CodOS)
+        { 
+            PacientesDALTableAdapters.QueriesTableAdapter adapter = new PacientesDALTableAdapters.QueriesTableAdapter();
+            object resultado = adapter.H2_Gente_Actualizar_Tel_Secc(Telefono, Seccional, documento, CodOS);
+            return Convert.ToInt32(resultado);
+        }
+
+
+        
+        public List<pacientes> Paciente_DOC(Int32 DOC)
+        {
+            List<pacientes> lista = new List<pacientes>();
+            PacientesDALTableAdapters.H2_Afiliado_Encabezado_DOCTableAdapter adapter = new PacientesDALTableAdapters.H2_Afiliado_Encabezado_DOCTableAdapter();
+            PacientesDAL.H2_Afiliado_Encabezado_DOCDataTable aTable = adapter.GetData(DOC);
+
+            int pos = 0;
+            pacientes p = new pacientes();
+            foreach (PacientesDAL.H2_Afiliado_Encabezado_DOCRow row in aTable.Rows)
+            {
+                pos++;
+                p.Nro_Busqueda = pos;
+                p.cuil_titu = row.cuil_titu;
+                p.cuil = row.cuil;
+                
+                p.documento = row.documento;
+                if (!row.Isfecha_nacimientoNull()) p.fecha_nacimiento = row.fecha_nacimiento;                
+                if (!row.IsSeccionalNull()) p.Seccional = row.Seccional;
+
+                if (!row.IsLocalidadNull()) { p.localidad = row.Localidad; }
+
+                p.Paciente = row.apellido;
+
+                if (!row.IsNro_SeccionalNull()) p.Nro_Seccional = row.Nro_Seccional.ToString(); else p.Nro_Seccional = "999";
+                
+                if (!row.IstelefonoNull()) p.Telefono = row.telefono;
+                p.Titular = "";
+                
+                p.ObraSocial = row.OS;
+                p.OSId = row.OSId;
+
+                p.NHC = row.cuil;
+                lista.Add(p);
+            }
+
+            return lista;
+        }
+
+
+
+
+
+
+
+
+
+
+    }
+}
